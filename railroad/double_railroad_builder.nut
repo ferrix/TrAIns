@@ -321,12 +321,16 @@ function DoubleRailroadBuilder::DemolishDoubleRailroad(path){
 		path = path.child_path;
 	}
 }
-
+/* 	Cost function, calculates cost of a tile.
+	Cost of a:
+	normal DoubleRailroadPart  = 1
+	and bridge = length of a bridge * 1  
+*/
 function DoubleRailroadBuilder::G(parent_node, tile, part_index, user_data, self){
 	this = self;
 	local c;
 
-	/* The special cases. */
+	/* The special cases. defined in ./railroad/railroad_double_track_parts.nut */
 	switch(part_index){
 		case dtp.BRIDGE:
 			c = (AIMap.DistanceManhattan(user_data.start_tile, user_data.exit_tile) + 1) *
@@ -341,11 +345,14 @@ function DoubleRailroadBuilder::G(parent_node, tile, part_index, user_data, self
 
 	/* Debug: */
  	//AITile.DemolishTile(tile);
-
+	/* Return cost of a parent + current */
 	if(parent_node == null) return c;
 	else return parent_node.g + c;
 }
-
+/* 	Estimate function
+	Length to the goal is estimated:
+	x or y distance, which ever is greater  * 1.  
+*/
 function DoubleRailroadBuilder::H(parent_node, tile, part_index, user_data, self){
 	this = self;
 
@@ -367,14 +374,18 @@ function DoubleRailroadBuilder::H(parent_node, tile, part_index, user_data, self
 	return max(abs(t_x - g_x), abs(t_y - g_y)) * PART_COST;
 }
 
+/* 	Function for expanding neighbouring nodes.
+	Each node is a double railroad track part which is compatible with previous part
+	or a complete bridge.
+*/
 function DoubleRailroadBuilder::GetNeighbours(node, self){
 	this = self;
 	local neighbours = [];
 	local part_index = node.part_index;
 	local new_tile;
-
+	/* Get parents next game map tile with part# */
 	switch(part_index){
-		case DoubleTrackParts.BRIDGE:{
+		case DoubleTrackParts.BRIDGE:{ 
 			local user_data = node.user_data;
 			part_index = user_data.part_index;
 			if(part_index == DoubleTrackParts.NS_LINE || part_index == DoubleTrackParts.EW_LINE)
@@ -386,9 +397,9 @@ function DoubleRailroadBuilder::GetNeighbours(node, self){
 			new_tile = node.tile + dtp.parts[part_index].next_tile;
 		break;
 	}
-
+	
 	if(!AIMap.IsValidTile(new_tile)) return [];
-
+	/* Evaluate all compatible continuation parts and add each valid to neighbours list as a A* node */
 	foreach(child_part_index in dtp.parts[part_index].continuation_parts){
 		/* Check if it was already generated. */
 		if(a_star.IsInClosedList(new_tile, child_part_index, null)) continue;
@@ -612,17 +623,23 @@ function DoubleRailroadBuilder::BuildSignals(path, interval){
 		i++;
 	}
 }
-
+/* 	Search and build route.
+	called from scheduled action in actions.nut.
+*/
 function DoubleRailroadBuilder::BuildTrack() {
+	
 	local enough_cash = true;
 
 	while(enough_cash){
+		/* 	Late initialization 
+			Originally inited in constructor(with callbacks to this DoubleRailroadBuilder object).*/
 		if(initialize_a_star){
 			start_date = AIDate.GetCurrentDate();
 			start_tick = ::ai_instance.GetTick();
 			a_star.InitializePath([[tile_from, part_from, user_data]], ignored_nodes);
 			initialize_a_star = false;
 		}
+		/* Start path finding */
 		local path = a_star.FindPath(PATHFINDING_INTERVAL);
 
 		if(AIDate.GetCurrentDate() > start_date + PATHFINDING_TIME_OUT){

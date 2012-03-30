@@ -62,6 +62,7 @@ class DoubleJunctionBuilder {
 	dtp = null;
 
 	constructor(paths, from_tile, gap_size, max_distance){
+		/* DoubleTrackParts instance */
 		this.dtp = ::ai_instance.dtp;
 		this.start_paths = paths;
 		this.from_tile = from_tile;
@@ -129,6 +130,7 @@ function DoubleJunctionBuilder::BuildJunction(prefered_direction){
 }
 
 function DoubleJunctionBuilder::CalculatePossibleJunctions(){
+	/* DoubleTrackParts instance */
 	local dtp = ::ai_instance.dtp;
 	possible_junctions = array(0);
 

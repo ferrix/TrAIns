@@ -146,13 +146,19 @@ function RailroadManager::GetOrdedCargos(){
 
 /* TODO: Use parameters to configure this function: terraforming. */
 /* TODO: Deal with secondary industries. */
+/* 
+	When money is reserved for track try to build it 
+*/
 function RailroadManager::InvestMoneyOnIndustry(just_primary, reservation_id){
 	local aux;
 	local cargo_rail_type = AIList();
+	/* Get places wantig a cargo */
 	local cargos = GetOrdedCargos();
+	/* ? */
 	local rail_types = GetValuatedRailTypes();
 	local industry_manager = ::ai_instance.industry_manager;
 	local selected_industries = array(0);
+	/* Get reserved sum of money */
 	local total_available_money = ::ai_instance.money_manager.GetAmountReserved(reservation_id) +
 		::ai_instance.money_manager.GetAvailableMoney();
 
@@ -213,14 +219,16 @@ function RailroadManager::InvestMoneyOnIndustry(just_primary, reservation_id){
 				if(!AIIndustry.IsCargoAccepted(railroad_route.d_industry, industry.cargo)) continue;
 				/* There is a wagon that can deal with the cargo? */
 				if(RailroadRoute.ChooseWagon(industry.cargo, railroad_route.rail_type) == null) continue;
-
+				
 				distance = AITile.GetDistanceManhattanToTile(industry_tile,
 					AIIndustry.GetLocation(railroad_route.d_industry));
+				/* Test if distance is between min and max distance */
 				if((distance - RAILROAD_ROUTE_LENGTH_TOLERANCE) <= RAILROAD_ROUTE_LENGTH &&
 					RAILROAD_ROUTE_LENGTH <= (distance + RAILROAD_ROUTE_LENGTH_TOLERANCE)){
 					foreach(industry_source in railroad_route.industry_sources){
 						paths.push(industry_source.double_railroad.path);
 					}
+					/* Init DoubleJunctionBuilder for looking for*/
 					djb = DoubleJunctionBuilder(paths, industry_tile, JUNCTION_GAP_SIZE,
 						MAX_DISTANCE_JUNCTION_POINT);
 					possible_junction = djb.GetBestPossibleJunction();
@@ -370,6 +378,7 @@ function RailroadManager::BuildNewTownRailroadRoute(town1, town2, rail_type, res
 /* TODO: Deal with secondary industries. */
 function RailroadManager::BuildNewIndustryRailroadRoute(industry_id, cargo, rail_type, reservation_id){
 	local industry_manager = ::ai_instance.industry_manager;
+	/* new instance of a route */
 	local railroad_route = IndustryToIndustryRailroadRoute();
 	local rail_types = GetValuatedRailTypes();
 	local source_double_railroad_station;
@@ -377,8 +386,10 @@ function RailroadManager::BuildNewIndustryRailroadRoute(industry_id, cargo, rail
 
 	wagon_engine = RailroadRoute.ChooseWagon(cargo, rail_type);
 	assert(wagon_engine != null);
+	/* Set best locomotive for route */
 	railroad_route.locomotive_engine = RailroadRoute.ChooseLocomotive(cargo, rail_type, null);
 	assert(railroad_route.locomotive_engine != null);
+	/* Set best rail type for rail */
 	railroad_route.rail_type = rail_type;
 	AIRail.SetCurrentRailType(rail_type);
 
@@ -392,6 +403,7 @@ function RailroadManager::BuildNewIndustryRailroadRoute(industry_id, cargo, rail
 			AIIndustry.GetLocation(d_industry));
 		if((distance - RAILROAD_ROUTE_LENGTH_TOLERANCE) <= RAILROAD_ROUTE_LENGTH &&
 			RAILROAD_ROUTE_LENGTH <= (distance + RAILROAD_ROUTE_LENGTH_TOLERANCE)){
+			/* Set destination industry */
 			railroad_route.d_industry = d_industry;
 			/* Now try to construct the route. */
 			local destination_double_railroad_station;
@@ -399,7 +411,7 @@ function RailroadManager::BuildNewIndustryRailroadRoute(industry_id, cargo, rail
 			{
 				local s_m_exit_direction, d_m_exit_direction, s_s_exit_direction,
 					d_s_exit_direction, directions;
-
+				/* Facing to the destination */
 				directions = Direction.GetDirectionsToTile(AIIndustry.GetLocation(industry_id),
 					AIIndustry.GetLocation(railroad_route.d_industry));
 				s_m_exit_direction = directions.first;
@@ -417,11 +429,15 @@ function RailroadManager::BuildNewIndustryRailroadRoute(industry_id, cargo, rail
 						d_m_exit_direction, d_s_exit_direction, STATION_TERRAFORMING_MAX_COST,
 						DoubleRailroadStation.PRE_SIGNALED, railroad_route.d_industry, false);
 					destination_double_railroad_station = d.BuildRailroadStation();
+					/* If cannot build a station to destination, mark route blocked. 
+					Could be a problem if station builder is not good enough. */
 					if(destination_double_railroad_station == null){
 						source_double_railroad_station.DemolishRailroadStation();
 						industry_manager.Block(railroad_route.d_industry);
 					}
 				}else{
+					/* If source station builder failed block source industry. 
+					Could be a problem if station builder is not good enough. */
 					industry_manager.Block(industry_id);
 					/* FIXME: need to check what was the problem. */
 				}
@@ -429,6 +445,7 @@ function RailroadManager::BuildNewIndustryRailroadRoute(industry_id, cargo, rail
 
 			if(source_double_railroad_station == null) return false;
 			if(destination_double_railroad_station == null) continue;
+			/* Source and destination stations are ok start building route. */
 			LogMessagesManager.PrintLogMessage("Distance between stations: " +
 				AIMap.DistanceManhattan(source_double_railroad_station.station_tile,
 					destination_double_railroad_station.station_tile) + ".");
@@ -437,6 +454,7 @@ function RailroadManager::BuildNewIndustryRailroadRoute(industry_id, cargo, rail
 
 			/* Create the action to build the railroad. */
 			{
+				/* Definition found in actions.nut. */
 				local action_birdrr = ActionBuildIndustryRouteDoubleRailroad();
 				action_birdrr.cargo = cargo;
 				action_birdrr.industry_id = industry_id;
@@ -445,6 +463,7 @@ function RailroadManager::BuildNewIndustryRailroadRoute(industry_id, cargo, rail
 				action_birdrr.reservation_id = reservation_id;
 				action_birdrr.source_double_railroad_station = source_double_railroad_station;
 				action_birdrr.wagon_engine = wagon_engine;
+				/* Schedule one time building action. */
 				InsertAction(action_birdrr);
 			}
 			return true;
@@ -601,7 +620,9 @@ function RailroadManager::MaintainRailroadRoutes(self){
 
 	return false;
 }
-
+/*
+Runs TRIWEEKLY_INTERVAL and test 
+*/
 function RailroadManager::InvestMoneyOnRailroads(self){
 	local reservation_id = null, aux = false;
 	this = self;
@@ -612,15 +633,20 @@ function RailroadManager::InvestMoneyOnRailroads(self){
 	/* TODO Check if it done well and diminish the distance if not. */
 	if(railroad_routes.len() == 0)
 		reservation_id = ::ai_instance.money_manager.ReserveMoney(0);
-	else if(CanBuildNewRoute())
-		reservation_id = ::ai_instance.money_manager.ReserveMoney(MIN_MONEY_TO_INVEST, (2.5 * MIN_MONEY_TO_INVEST).tointeger());
+	else if(CanBuildNewRoute()){
+			/*If allready built routes needs new cars, theyre prioritized!!! */
+			/* Reserve money for track(275000*2.5) */
+			reservation_id = ::ai_instance.money_manager.ReserveMoney(MIN_MONEY_TO_INVEST, (2.5 * MIN_MONEY_TO_INVEST).tointeger());
+		}
 
 	/* If we have sufficient money we must invest it. */
 	if(reservation_id != null){
 		local r = AIBase.RandRange(4);
 
 	//passar para o CanInvestMoneyOnTown
+	/* Builds (3) industries before building a town */
 		if(r != 0 || railroad_routes.len() < MIN_INDUSTRY_INDUSTRY_ROUTES_BEFORE_TOWN_TOWN_ROUTE){
+			/* Search and build a track */
 			aux = InvestMoneyOnIndustry(true, reservation_id);
 		}
 		if(aux == false){

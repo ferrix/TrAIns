@@ -41,6 +41,11 @@ class trAIns extends AIController {
 		money_manager = MoneyManager();
 		industry_manager = IndustryManager();
 		scheduler = Scheduler();
+		/*
+		Railroad manager starts the tasks to evaluate and build 
+		railroads.
+		./railroad/railroad_manager/railroad_manager.nut 
+		*/
 		railroad_manager = RailroadManager();
 		vehicle_seller = VehicleSeller();
 		game_settings = GameSettings();

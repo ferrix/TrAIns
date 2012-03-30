@@ -26,8 +26,8 @@ class AStarNode {
 	parent_node = null;
 	user_data = null;/* TODO: Choose a better name. */
 	f = null;
-	g = null;
-	h = null;
+	g = null;/* Cost */
+	h = null;/* Estimate*/
 
 	constructor(tile, part_index, reference_part_index, user_data, parent_node, g, h){
 		this.tile = tile;
@@ -156,7 +156,8 @@ class AStar {
 			throw("'neighbours_callback' has to be a function-pointer.");
 		if(typeof(end_node_callback) != "function")
 			throw("'end_node_callback' has to be a function-pointer.");
-
+		/* 	Set callbacks for evaluation functions and node expansion.
+			Calls to DoubleRailroadBuilder object.*/
 		this.cost_callback = cost_callback;
 		this.estimate_callback = estimate_callback;
 		this.neighbours_callback = neighbours_callback;
@@ -267,18 +268,24 @@ function AStar::IsInClosedList(tile, part_index, reference_part_index){
 function AStar::InsertNode(node){
 	nodes.push(node);
 }
-
+/* 	Main function for fast expansion. nodes.
+	Called from AStar::FindPath
+*/
 function AStar::ExpandNodeNeighboursWithFastExpansion(parent_node){
+	/* Use DoubleRailroadBuilder objects knowledge to expand nodes(double_rairoad_parts) */
 	local neighbour_nodes = neighbours_callback(parent_node, neighbours_callback_param);
 	local fast_expansion_done = false;
 
 	foreach(node in neighbour_nodes){
 		if(node.g != 0){
-			/* Expand fast. */
+			/* Expand fast. Expand also the most promising node's neightbours at same time with it */
+			/* Add to border */
 			InsertNode(node);
+			/* Insert Bridge nodes also to a separate list */
 			InsertInClosedList((dtp.IsBridgeOrTunnel(node.part_index) ? node.user_data.start_tile : node.tile),
 				node.part_index, node.reference_part_index);
 			if(!fast_expansion_done && (node <= parent_node) && !end_node_callback(node, end_node_callback_param)){
+				/* Expand also neighbours of most promising node */
 				ExpandNodeNeighbours(node);
 				fast_expansion_done = true;
 			}else{
@@ -287,12 +294,15 @@ function AStar::ExpandNodeNeighboursWithFastExpansion(parent_node){
 		}
 	}
 }
-
+/* 	Main function for fast expanding nodes.
+	Called from AStar::ExpandNodeNeighboursWithFastExpansion
+*/
 function AStar::ExpandNodeNeighbours(parent_node){
 	local neighbour_nodes = neighbours_callback(parent_node, neighbours_callback_param);
 
 	foreach(node in neighbour_nodes){
 		if(node.g != 0){
+			/* Add nodes to border */
 			open.Insert(node);
 			InsertNode(node);
 			InsertInClosedList((node.part_index == DoubleTrackParts.BRIDGE ? node.user_data.start_tile : node.tile),
@@ -300,7 +310,8 @@ function AStar::ExpandNodeNeighbours(parent_node){
 		}
 	}
 }
-
+/* 	Late initialization, must be called before FindPath
+*/
 function AStar::InitializePath(source_nodes, ignored_nodes){
 	if(typeof(source_nodes) != "array" || source_nodes.len() == 0)
 		throw("'source_nodes' has to be a non-empty array.");
@@ -409,7 +420,8 @@ function AStar::CreateFinalPath(node){
 
 	return path;
 }
-
+/*	A* search loop.
+*/
 function AStar::FindPath(max_time = -1){
 	local start_date = AIDate.GetCurrentDate();
 
@@ -424,6 +436,7 @@ function AStar::FindPath(max_time = -1){
 
 		/* Check if we found the goal. */
 		if(end_node_callback(node, end_node_callback_param)){
+			/* Found goal, "build" the last part of the route */
 			LogMessagesManager.PrintLogMessage("Visited nodes: " + nodes.len() + ".");
 			open.PrintStatistics();
 			return CreateFinalPath(node);

@@ -89,7 +89,9 @@ class ActionBuildTownToTownRouteDoubleRailroad extends Action {
 	}
 	function Finished(){
 		if(drrb == null){
+			/* DoubleTrackParts instance */
 			local dtp = ::ai_instance.dtp;
+			/* Init DoubleRailroadBuilder to build raildoad */
 			drrb = DoubleRailroadBuilder(railroad_route.town1_double_railroad_station.exit_part_tile,
 				dtp.GetOppositePartTile(railroad_route.town2_double_railroad_station.exit_part_tile,
 				railroad_route.town2_double_railroad_station.exit_part),
@@ -97,12 +99,14 @@ class ActionBuildTownToTownRouteDoubleRailroad extends Action {
 				dtp.GetOppositePart(railroad_route.town2_double_railroad_station.exit_part));
 			LogMessagesManager.PrintLogMessage(drrb.tostring());
 		}
-
+		/*  Start searching for a route with A*  and build it */
 		railroad_route.double_railroad = drrb.BuildTrack();
 		if(railroad_route.double_railroad == null){
+			/* If route not found demolish stations */
 			railroad_route.town1_double_railroad_station.DemolishRailroadStation();
 			railroad_route.town2_double_railroad_station.DemolishRailroadStation();
 			/* TODO: The problem can be at destination station. */
+			/* Block source town and unreserve money */
 			::ai_instance.town_manager.Block(railroad_route.town1);
 			::ai_instance.money_manager.ReleaseReservation(reservation_id);
 			return true;
@@ -132,7 +136,10 @@ class ActionBuildTownToTownRouteDoubleRailroad extends Action {
 	reservation_id = null;
 	wagon_engine = null;
 }
-
+/* 	Scheduleable task for searching and building a route.
+	Requires that source and destination stations are allready built. 
+	Scheduled in Railroad manager.
+*/
 class ActionBuildIndustryRouteDoubleRailroad extends Action {
 	/* Public: */
 	function Block(){
@@ -144,7 +151,9 @@ class ActionBuildIndustryRouteDoubleRailroad extends Action {
 	function Finished(){
 		local double_railroad;
 		if(drrb == null){
+			/* DoubleTrackParts instance */
 			local dtp = ::ai_instance.dtp;
+			/* Init DoubleRailroadBuilder to build raildoad */
 			drrb = DoubleRailroadBuilder(source_double_railroad_station.exit_part_tile,
 				dtp.GetOppositePartTile(railroad_route.destination_double_railroad_station.exit_part_tile,
 				railroad_route.destination_double_railroad_station.exit_part),
@@ -152,24 +161,28 @@ class ActionBuildIndustryRouteDoubleRailroad extends Action {
 				dtp.GetOppositePart(railroad_route.destination_double_railroad_station.exit_part));
 			LogMessagesManager.PrintLogMessage(drrb.tostring());
 		}
-
+		/* Start searching for a route with A* and build it */
 		double_railroad = drrb.BuildTrack();
 		if(double_railroad == null){
+			/* If route finder failed demolish source station */
 			local industry_manager = ::ai_instance.industry_manager;
 			source_double_railroad_station.DemolishRailroadStation();
 			railroad_route.destination_double_railroad_station.DemolishRailroadStation();
 			/* TODO: The problem can be at destination station. */
+			/* Block source industry and release money */
 			industry_manager.Block(industry_id);
 			::ai_instance.money_manager.ReleaseReservation(reservation_id);
 			return true;
 		}else if(double_railroad == false) return false;
-
+		/* Route created. 
+		Save it to list and start managing it(number trains locomotive upgrades, etc.)*/
 		local industry_source;
 		industry_source = IndustrySource(cargo, industry_id, source_double_railroad_station, railroad_route,
 			double_railroad, wagon_engine);
 		railroad_route.industry_sources = [industry_source];
 
 		railroad_route.last_locomotive_update = AIDate.GetCurrentDate();
+		/* Set industry as used. */
 		::ai_instance.industry_manager.MarkAsUsed(industry_id);
 		assert(railroad_route != null);
 		railroad_manager.railroad_routes.push(railroad_route);

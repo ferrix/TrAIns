@@ -20,6 +20,7 @@
 class LocomotiveValuator {
 	/* Public: */
 	constructor(engines){
+		/* Adjust importance of reliability based on game setting*/
 		switch(::ai_instance.game_settings.vehicle_breakdowns){
 			case 0:
 				reliability_importance = 0.0;
@@ -31,7 +32,7 @@ class LocomotiveValuator {
 				reliability_importance = 2.5;
 			break;
 		}
-
+		/**/
 		engines.Valuate(AIEngine.GetMaxSpeed);
 		engines.Sort(AIAbstractList.SORT_BY_VALUE, false);
 		largest_max_speed = engines.GetValue(engines.Begin()).tofloat();
@@ -70,7 +71,16 @@ class LocomotiveValuator {
 
 	function ValuateLocomotive(id, self){
 		this = self;
-
+        /* Calculate locomotive value
+        + 0.25 * running cost when compared to largest(cheaper is better).
+        + 0|1.5|2.5 * reliability compared to best. Depends on game setting.
+        + 1.5 * (max)speed compared to most fastest.
+        + 0.75 * power compared to most powerful.
+        + 1.25 * price compared to most expensive(cheaper is better)
+        + 0.75 * weigth compared to largest weigth (heavier is better)
+        100000 * others
+        returns integer
+        */ 
 		local v = 0.0;
 		v += 0.25 * (1.0 - (AIEngine.GetRunningCost(id).tofloat() / largest_running_cost));
 		v += reliability_importance * (AIEngine.GetReliability(id).tofloat() / largest_reliability);

@@ -181,8 +181,11 @@ function RailroadRoute::CalculateNumberOfWagons(depot_tile, locomotive_engine, w
 }
 
 function RailroadRoute::ChooseLocomotive(cargo, rail_type, locomotive_max_price){
+	/* Get engines for suited  cargo and railtype */
 	local engines = RailroadRoute.GetEvaluatedLocomotiveEnginesList(cargo, rail_type, locomotive_max_price);
+	/* Sort by value x????? */
 	engines.Sort(AIAbstractList.SORT_BY_VALUE, false);
+	/*  */
 	return engines.Count() == 0 ? null : engines.Begin();
 }
 
@@ -202,12 +205,16 @@ function RailroadRoute::ChooseWagon(cargo, rail_type){
 }
 
 function RailroadRoute::GetEvaluatedLocomotiveEnginesList(cargo, rail_type, locomotive_max_price){
+	/* Get all engines  */
 	local engines = AIEngineList(AIVehicle.VT_RAIL);
+	/* Remove unusable */
 	engines.Valuate(AIEngine.IsValidEngine);
 	engines.KeepValue(1);
+	/* Remove wagons */
 	engines.Valuate(AIEngine.IsWagon);
 	engines.KeepValue(0);
-	if(rail_type != null){
+	/* Test if engine can run on current rail type*/
+	if(rail_type != null){		
 		engines.Valuate(AIEngine.CanRunOnRail, rail_type);
 		engines.KeepValue(1);
 		engines.Valuate(AIEngine.HasPowerOnRail, rail_type);
@@ -215,18 +222,21 @@ function RailroadRoute::GetEvaluatedLocomotiveEnginesList(cargo, rail_type, loco
 		engines.Valuate(AIEngine.GetRailType);
 		engines.KeepValue(rail_type);
 	}
+	/* Is suitable for cargo */
 	if(cargo != null){
 		engines.Valuate(AIEngine.CanPullCargo, cargo);
 		engines.KeepValue(1);
 	}
+	/* If max price set then remove too expensive ones */
 	if(locomotive_max_price != null){
 		engines.Valuate(AIEngine.GetPrice);
 		engines.KeepBelowValue(locomotive_max_price.tointeger());
 	}
-
+	/* Remove engines blocked for route */
 	engines.RemoveList(RailroadRoute.blocked_locomotive_engines);
-
+    /* Init  evaluator with list of engines. Gathers max values, etc. */
 	local lv = LocomotiveValuator(engines);
+	/* Valuate each engine */
 	engines.Valuate(LocomotiveValuator.ValuateLocomotive, lv);
 	return engines;
 }

@@ -23,13 +23,13 @@ class trAIns extends AIInfo {
 		return "Luis Henrique O. Rios";
 	}
    function GetName(){
-		return "trAIns-mod2";
+		return "trAIns-mod4";
 	}
    function GetShortName(){
 		return "TRAI";
 	}
    function GetDescription(){
-		return "trAIns is a competitive AI that plays only with trains. It creates and manages railroad routes that connects industries and railroad routes that connects two towns. The last can transport passengers. It is also partially compatible with NARS and 2CC.";
+		return "the trAIns is a competitive AI that plays only with trains. It creates and manages railroad routes that connects industries and railroad routes that connects two towns. The last can transport passengers. It is also partially compatible with NARS and 2CC.";
 	}
    function GetVersion(){
 		return 2;
@@ -57,6 +57,16 @@ class trAIns extends AIInfo {
 	function GetURL(){
 		return "http://www.dcc.ufmg.br/~lhrios/trains/";
 	}
+	
+	
+	function GetSettings() 
+    {
+    	/* Add settings to the list */
+        AddSetting({name = "Industry-Town ratio", description = "Changes the chance to build town or industry route ", min_value = 0, max_value = 100, easy_value = 50, medium_value = 50, hard_value = 50, custom_value = 50, flags = 0});
+        AddLabels("Industry-Town ratio", {_0 = "Only industries", _100 = "Only towns"});
+        AddSetting({name = "# of first routes are industry routes", description = "Changes how many industries are built first", min_value = 0, max_value = 10, easy_value = 3, medium_value = 3, hard_value = 3, custom_value = 3, flags = 0});
+        
+    }
 };
 
 RegisterAI(trAIns());

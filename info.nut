@@ -64,7 +64,7 @@ class trAIns extends AIInfo {
     	/* Add settings to the list */
         AddSetting({name = "Industry-Town ratio", description = "Changes the chance to build town or industry route ", min_value = 0, max_value = 100, easy_value = 50, medium_value = 50, hard_value = 50, custom_value = 50, flags = 0});
         AddLabels("Industry-Town ratio", {_0 = "Only industries", _100 = "Only towns"});
-        AddSetting({name = "# of first routes are industry routes", description = "Changes how many industries are built first", min_value = 0, max_value = 10, easy_value = 3, medium_value = 3, hard_value = 3, custom_value = 3, flags = 0});
+        AddSetting({name = "N first routes are industry", description = "Changes how many industries are built first", min_value = 0, max_value = 10, easy_value = 3, medium_value = 3, hard_value = 3, custom_value = 3, flags = 0});
         
     }
 };

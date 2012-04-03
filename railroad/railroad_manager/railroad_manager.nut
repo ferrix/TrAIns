@@ -23,10 +23,13 @@ class RailroadManager {
         ::ai_instance.scheduler.CreateTask(CorrectNumberOfTrainsInRailroadRoutes, this, Scheduler.WEEKLY_INTERVAL);
         ::ai_instance.scheduler.CreateTask(InvestMoneyOnRailroads, this, Scheduler.TRIWEEKLY_INTERVAL);
         ::ai_instance.scheduler.CreateTask(MaintainRailroadRoutes, this, Scheduler.BIWEEKLY_INTERVAL);
-        LogMessagesManager.PrintLogMessage("# of first routes are industry:" );
-        LogMessagesManager.PrintLogMessage("Industry-Town ratio:" );
-        n_first_routes_are_industies = ::ai_instance.GetSetting("# of first routes are industry");
+        
+        n_first_routes_are_industies = ::ai_instance.GetSetting("N first routes are industry");
         town_to_industry_route_ratio = ai_instance.GetSetting("Industry-Town ratio");
+        
+        LogMessagesManager.PrintLogMessage("# of first routes are industry: " +  n_first_routes_are_industies.tostring() );
+        LogMessagesManager.PrintLogMessage("Industry-Town ratio:" + town_to_industry_route_ratio.tostring() );
+        
         /*
         n_first_routes_are_industies = ::ai_instance.game_settings.IndustriesBeforeTowns;
         town_to_industry_route_ratio = ::ai_instance.game_settings.IndustryTownRatio;

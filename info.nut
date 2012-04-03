@@ -23,7 +23,7 @@ class trAIns extends AIInfo {
 		return "Luis Henrique O. Rios";
 	}
    function GetName(){
-		return "trAIns";
+		return "trAIns-mod2";
 	}
    function GetShortName(){
 		return "TRAI";

@@ -75,7 +75,7 @@ class DoubleRailroadBuilder {
 
 	/* Private: */
 	/* Constants: */
-	static PART_COST = 1;
+	static PART_COST = 2;
 	static BRIDGE_MAX_LENGTH = 15;
 
 	static PATHFINDING_TIME_OUT = (365 * 2.5).tointeger();/* days. */
@@ -342,6 +342,15 @@ function DoubleRailroadBuilder::G(parent_node, tile, part_index, user_data, self
 			c = PART_COST;
 		break;
 	}
+	if(parent_node != null)
+    {
+        /* Part indexes 0-3 are direct straight and 12-19 are diagonal straight lines */
+        if((part_index >= 0 && part_index < 4) || (part_index >= 12 && part_index <= 19) ){
+            if(part_index == parent_node.part_index){
+                c = c-1;
+            }
+        }
+    }
 
 	/* Debug: */
  	//AITile.DemolishTile(tile);

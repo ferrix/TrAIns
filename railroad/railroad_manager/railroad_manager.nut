@@ -83,7 +83,7 @@ function RailroadManager::CanInvestMoneyOnTown(){
 	local rail_types = GetValuatedRailTypes();
 	if(rail_types.Count() == 0) return false;
 	local locomotive_engine = RailroadRoute.ChooseLocomotive(passenger_cargo, rail_types.Begin(), null);
-	return locomotive_engine != null && AIEngine.GetMaxSpeed(locomotive_engine) >= 96;
+	return locomotive_engine != null /* && AIEngine.GetMaxSpeed(locomotive_engine) >= 96*/;
 }
 
 function RailroadManager::EstimateCostToBuildRailroadRoute(rail_type, length){

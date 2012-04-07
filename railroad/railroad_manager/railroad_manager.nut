@@ -25,7 +25,7 @@ class RailroadManager {
         ::ai_instance.scheduler.CreateTask(MaintainRailroadRoutes, this, Scheduler.BIWEEKLY_INTERVAL);
         
         n_first_routes_are_industies = ::ai_instance.GetSetting("N first routes are industry");
-        town_to_industry_route_ratio = ai_instance.GetSetting("Industry-Town ratio");
+        town_to_industry_route_ratio = ai_instance.GetSetting("Chance to build town route");
         
         LogMessagesManager.PrintLogMessage("# of first routes are industry: " +  n_first_routes_are_industies.tostring() );
         LogMessagesManager.PrintLogMessage("Industry-Town ratio:" + town_to_industry_route_ratio.tostring() );
@@ -96,6 +96,9 @@ class RailroadManager {
     function InvestMoneyOnRailroads(self);
     function InvestMoneyOnTown(reservation_id);
     function InsertAction(action);
+    /* Route evaluators */
+    function EvaluateIndustryRoutes(just_primary);
+    function EvaluateTownRoutes();
 }
 
 function RailroadManager::CanInvestMoneyOnTown(){
@@ -164,6 +167,77 @@ function RailroadManager::GetOrdedCargos(){
     cargos.Sort(AIAbstractList.SORT_BY_VALUE, false);
     if(cargos.Count() == 0) throw("There are no cargos I can deal with.");
     return cargos;
+}
+
+/* Evaluates possible industry routes.
+*/
+function RailroadManager::EvaluateIndustryRoutes(just_primary){
+    local aux;
+    local cargo_rail_type = AIList();
+    /* Get places wanted a cargo */
+    local cargos = GetOrdedCargos();
+    /* ? */
+    local rail_types = GetValuatedRailTypes();
+    local industry_manager = ::ai_instance.industry_manager;
+    local selected_industries = array(0);
+    /* Get reserved sum of money */
+    //local total_available_money = ::ai_instance.money_manager.GetAmountReserved(reservation_id) + ::ai_instance.money_manager.GetAvailableMoney();
+
+    foreach(cargo, unused in cargos){
+        /* Select a railtype. */
+        foreach(rail_type, unused in rail_types){
+            /* First check if there is money to build the track. */
+            //if(total_available_money < EstimateCostToBuildRailroadRoute(rail_type, RAILROAD_ROUTE_LENGTH)) continue;
+            /* Try to find a locomotive. */
+            aux = RailroadRoute.ChooseLocomotive(cargo, rail_type, null);
+            if(aux == null) continue;
+            /* Try to find a wagon. */
+            aux = RailroadRoute.ChooseWagon(cargo, rail_type);
+            if(aux == null) continue;
+            /* The rail type has a train able to transport the cargo. So, the rail type will be stored. */
+            cargo_rail_type.AddItem(cargo, rail_type);
+
+            /* Try to find the industries. */
+            local s_industries = AIIndustryList_CargoProducing(cargo);
+            local d_industries = AIIndustryList_CargoAccepting(cargo);
+            if(d_industries.Count() == 0) break; /* TODO: Destination may be a city. */
+            
+            s_industries.Valuate(AIIndustry.IsValidIndustry);
+            s_industries.KeepValue(1);
+            s_industries.Valuate(AIIndustry.IsBuiltOnWater);
+            s_industries.KeepValue(0);
+            if(s_industries.Count() == 0) break;
+            
+            foreach(industry, unused in s_industries){
+                if(industry_manager.IsBlocked(industry) || industry_manager.IsUsed(industry) ||
+                    (just_primary && !AIIndustryType.IsRawIndustry(AIIndustry.GetIndustryType(industry))) ||
+                    (railroad_routes.len() != 0 && (AIIndustry.GetLastMonthProduction(industry, cargo) -
+                        AIIndustry.GetLastMonthTransported(industry, cargo)) <
+                        INDUSTRY_MIN_PRODUCTION)) continue;
+                selected_industries.push(IndustryUsage(industry, cargo));
+            }
+            break;
+        }
+    }
+    IndustryValuator.ValuateIndustries(selected_industries);
+    /* selected_industries array contains list of valid industries.
+        List is ordered by valuator, so that best is on the top. 
+    */
+    /* */
+    if( selected_industries.len() == 0 ){
+        return false;
+    }
+    else
+    {
+        local tileIndex = AIIndustry.GetLocation(selected_industries[0].industry_id)
+        local x = AIMap.GetTileX(tileIndex);
+        local y = AIMap.GetTileY(tileIndex);
+    	LogMessagesManager.PrintLogMessage("Best evaluated industry: " 
+    	                                   + "Name: " + AIIndustry.GetName(selected_industries[0].industry_id)
+    	                                   + " At: " + x.tostring() + "," + y.tostring()
+    	                                   + " Value: " + selected_industries[0].valuation.tostring());
+        return selected_industries[0].valuation;
+   }
 }
 
 /* TODO: Use parameters to configure this function: terraforming. */
@@ -250,7 +324,7 @@ function RailroadManager::InvestMoneyOnIndustry(just_primary, reservation_id){
                     foreach(industry_source in railroad_route.industry_sources){
                         paths.push(industry_source.double_railroad.path);
                     }
-                    /* Init DoubleJunctionBuilder for looking for*/
+                    /* Init DoubleJunctionBuilder for looking for nearest junction */
                     djb = DoubleJunctionBuilder(paths, industry_tile, JUNCTION_GAP_SIZE,
                         MAX_DISTANCE_JUNCTION_POINT);
                     possible_junction = djb.GetBestPossibleJunction();
@@ -275,6 +349,58 @@ function RailroadManager::InvestMoneyOnIndustry(just_primary, reservation_id){
             return true;
     }
     return false;
+}
+
+
+function RailroadManager::EvaluateTownRoutes(){
+	local selected_towns = array(0);
+    /* Get rail types */
+    local rail_types = GetValuatedRailTypes();
+    local selected_rail_type = null;
+    local towns;
+    local town_manager = ::ai_instance.town_manager;
+    
+
+    /* Select a railtype that has a compatible locomotive and wagon. */
+    foreach(rail_type, unused in rail_types){
+        /* Try to find a locomotive. */
+        local aux = RailroadRoute.ChooseLocomotive(passenger_cargo, rail_type, null);
+        if(aux == null) continue;
+        /* Try to find a wagon. */
+        aux = RailroadRoute.ChooseWagon(passenger_cargo, rail_type);
+        if(aux == null) continue;
+        selected_rail_type = rail_type;
+        break;
+    }
+    if(selected_rail_type == null) return false;
+
+    /* Now select the towns. */
+    towns = AITownList();
+    towns.Valuate(AITown.GetPopulation);
+    towns.KeepAboveValue(MIN_POPULATION);
+    towns.Valuate(AITown.GetLocation);
+
+    foreach(town, town_tile in towns){
+        if(((AITile.IsSnowTile(town_tile) || AITile.IsDesertTile(town_tile)) && AITown.GetPopulation(town) < 2.5 * MIN_POPULATION) ||
+            (AITown.GetLastMonthProduction(town, passenger_cargo) - AITown.GetLastMonthTransported(town, passenger_cargo)) <
+            TOWN_MIN_PRODUCTION) continue;
+        selected_towns.push(TownUsage(town));
+    }
+
+    TownValuator.ValuateTowns(selected_towns);
+    if( selected_towns.len() == 0 )
+        return false;
+    else
+    {
+    	local tileIndex = AITown.GetLocation(selected_towns[0].town_id)
+        local x = AIMap.GetTileX(tileIndex);
+        local y = AIMap.GetTileY(tileIndex);
+        LogMessagesManager.PrintLogMessage("Best evaluated town: " 
+                                           + "Name: " + AITown.GetName(selected_towns[0].town_id)
+                                           + " At: " + x.tostring() + "," + y.tostring()
+                                           + " Value: " + selected_towns[0].valuation.tostring());
+        return selected_towns[0].valuation;
+    }
 }
 
 function RailroadManager::InvestMoneyOnTown(reservation_id){
@@ -664,6 +790,13 @@ function RailroadManager::InvestMoneyOnRailroads(self){
 
     /* If we have sufficient money we must invest it. */
     if(reservation_id != null){
+    	
+        LogMessagesManager.PrintLogMessage("Test industry evaluation!");
+        local res = EvaluateIndustryRoutes(true);
+        LogMessagesManager.PrintLogMessage("Value of best industry" +  res.tostring() );
+        LogMessagesManager.PrintLogMessage("Test town evaluation!");
+        local tres = EvaluateTownRoutes();
+        LogMessagesManager.PrintLogMessage("Value of best town" +  tres.tostring() );
         /* This affects how often town route will be constructed vs. industry route */
         local r = AIBase.RandRange(99);
 

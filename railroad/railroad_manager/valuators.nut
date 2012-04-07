@@ -124,6 +124,49 @@ class RailTypeValuator {
 	lv = null;
 }
 
+/*  Valuates destination industries by distance.
+    order is:
+    distance in between min & max
+    distance below min
+    distance over max
+*/
+class DestinationIndustryValuator {
+    /* public */
+    constructor(source_industry, min_distance, max_distance){
+        source_industry_id =source_industry;
+        min_distance_to_industry = min_distance;
+        max_distance_to_industry = max_distance;
+    }
+    
+    function ValuateIndustries(industries){
+    	foreach(d_industry in industries){
+    		/* Get distance from source industry */
+            distance = AITile.GetDistanceManhattanToTile(AIIndustry.GetLocation(source_industry_id), AIIndustry.GetLocation(railroad_route.d_industry));
+            
+            if(distance < min_distance)
+            {
+            	
+            	industry.valuation = 1000*distance;
+            }
+            else
+                if(distance > max_distance)
+                {
+                    industry.valuation = 10000*distance;	
+                }
+                else 
+                {
+                	industry.valuation = distance;
+                }
+    	}
+    	industries.sort();
+    }
+    
+    /* Private */
+    source_industry_id	= null;
+    max_distance_to_industry  = null;
+    min_distance_to_industry  = null;
+}
+
 class IndustryValuator {
 	/* Public: */
 	static function ValuateIndustries(industries){

@@ -75,9 +75,10 @@ class DoubleRailroadBuilder {
 
 	/* Private: */
 	/* Constants: */
-	static PART_COST = 2;
+	static PART_COST = 10;
 	static BRIDGE_MAX_LENGTH = 15;
 
+    static MAX_PATH_FINDING_TIME_OUT_MULTIPLIER = 3;
 	static PATHFINDING_TIME_OUT = (365 * 2.5).tointeger();/* days. */
 	static PATHFINDING_INTERVAL = 30;
 
@@ -105,6 +106,7 @@ class DoubleRailroadBuilder {
 	function GetNeighbours(node, self);
 	function EndNode(node, self);
 	function LandToBuildBridgeOver(tile);
+	function GetPathFindingTimeout();
 
 }
 
@@ -333,8 +335,11 @@ function DoubleRailroadBuilder::G(parent_node, tile, part_index, user_data, self
 	/* The special cases. defined in ./railroad/railroad_double_track_parts.nut */
 	switch(part_index){
 		case dtp.BRIDGE:
-			c = (AIMap.DistanceManhattan(user_data.start_tile, user_data.exit_tile) + 1) *
-				PART_COST;
+		  /* Test, lower bridge cost after 20 years */
+		  if (::ai_instance.game_info.GetYearsElapsed() < 20)
+			  c = (AIMap.DistanceManhattan(user_data.start_tile, user_data.exit_tile) + 1) * PART_COST;
+		  else
+		      c = (AIMap.DistanceManhattan(user_data.start_tile, user_data.exit_tile) + 1) * (PART_COST/2).tointeger();
 		break;
 		case dtp.TUNNEL:
 		break;
@@ -348,6 +353,10 @@ function DoubleRailroadBuilder::G(parent_node, tile, part_index, user_data, self
         if((part_index >= 0 && part_index < 4) || (part_index >= 12 && part_index <= 19) ){
             if(part_index == parent_node.part_index){
                 c = c-1;
+                local grand_parent = parent_node.parent_node;
+                if(grand_parent != null)
+                    if(part_index == grand_parent.part_index)
+                        c = c-1;
             }
         }
     }
@@ -651,7 +660,7 @@ function DoubleRailroadBuilder::BuildTrack() {
 		/* Start path finding */
 		local path = a_star.FindPath(PATHFINDING_INTERVAL);
 
-		if(AIDate.GetCurrentDate() > start_date + PATHFINDING_TIME_OUT){
+		if(AIDate.GetCurrentDate() > start_date + GetPathFindingTimeout()){
 			LogMessagesManager.PrintLogMessage("DoubleRailroadBuilder::BuildTrack: Time out.");
 			if(final_path != null) DemolishDoubleRailroad(final_path);
 			if(first_path != null) DemolishDoubleRailroad(first_path);
@@ -764,4 +773,18 @@ function DoubleRailroadBuilder::BuildTrack() {
 	BuildSignals(final_path, 6);
 
 	return double_railroad;
+}
+
+/*  Returns dynamic pathfinding timeout, for late game when pathfinding is more difficult.
+    min of PATHFINDING_TIME_OUT * [ 1 + 0.5 ("years elapsed" / 20)] or MAX_PATH_FINDING_TIME_OUT_MULTIPLIER
+    So path finding timeout adds half for every 20 years till it reaches max
+*/
+function DoubleRailroadBuilder::GetPathFindingTimeout(){
+    local dynamicTimeoutValue = PATHFINDING_TIME_OUT;
+    local yearsElapsed = ::ai_instance.game_info.GetYearsElapsed();
+    local timeoutMultiplier = 1 + 0.5 * (1 + (floor(yearsElapsed/25)).tointeger());
+    if ( timeoutMultiplier > MAX_PATH_FINDING_TIME_OUT_MULTIPLIER )
+        timeoutMultiplier = MAX_PATH_FINDING_TIME_OUT_MULTIPLIER;
+    dynamicTimeoutValue = dynamicTimeoutValue * timeoutMultiplier;
+    return dynamicTimeoutValue;
 }

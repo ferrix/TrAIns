@@ -32,6 +32,7 @@ class trAIns extends AIController {
 	scheduler = null;
 	vehicle_seller = null;
 	town_manager = null;
+	game_info = null;
 	
 
 	constructor(){
@@ -52,6 +53,7 @@ class trAIns extends AIController {
 		game_settings = GameSettings();
 		town_manager = TownManager();
 		/* Get known game settings and store them to game_settings */
+		game_info = GameInfo();
 	
 
 		scheduler.CreateTask(Looping, null, Scheduler.ANUAL_INTERVAL);

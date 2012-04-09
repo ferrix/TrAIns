@@ -792,6 +792,7 @@ function RailroadManager::InvestMoneyOnRailroads(self){
     if(reservation_id != null){
     	
         LogMessagesManager.PrintLogMessage("Test industry evaluation!");
+        LogMessagesManager.PrintLogMessage("Years elapsed: " + ::ai_instance.game_info.GetYearsElapsed().tostring());
         local res = EvaluateIndustryRoutes(true);
         LogMessagesManager.PrintLogMessage("Value of best industry" +  res.tostring() );
         LogMessagesManager.PrintLogMessage("Test town evaluation!");

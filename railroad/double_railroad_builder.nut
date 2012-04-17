@@ -75,7 +75,7 @@ class DoubleRailroadBuilder {
 
 	/* Private: */
 	/* Constants: */
-	static PART_COST = 10;
+	static PART_COST = 3;
 	static BRIDGE_MAX_LENGTH = 15;
 
     static MAX_PATH_FINDING_TIME_OUT_MULTIPLIER = 3;

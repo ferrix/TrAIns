@@ -113,3 +113,13 @@ function trAIns::Start(){
 		scheduler.Loop();
 	}
 }
+/* Empty save function to get rid of irritating not implemented message. */
+/*function trAIns::Save()
+{
+   return false;
+}*/
+/* Empty save function to get rid of irritating not implemented message. */
+/*function trAIns::Load(version, data)
+{
+	return false;
+}*/

@@ -2468,9 +2468,9 @@ function DoubleTrackParts::GetOppositePart(part_index){
 
 function DoubleTrackParts::GetOppositePartTile(tile, part_index){
 	switch(part_index){
-		case EW_LINE: return tile + AIMap.GetTileIndex(+1, -1);
-		case WE_LINE: return tile + AIMap.GetTileIndex(-1, +1);
-		case NS_LINE: return tile + AIMap.GetTileIndex(+1, +1);
+		case EW_LINE: return tile + AIMap.GetTileIndex(1, -1);
+		case WE_LINE: return tile + AIMap.GetTileIndex(-1, 1);
+		case NS_LINE: return tile + AIMap.GetTileIndex(1, 1);
 		case SN_LINE: return tile + AIMap.GetTileIndex(-1, -1);
 
 		case NE_BEND:

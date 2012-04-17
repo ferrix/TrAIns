@@ -78,16 +78,25 @@ class AStarNode {
 				local dtp = ::ai_instance.dtp;
 
 				if(this.parent_node != null){
-					if(dtp.ChangedDirection(this.parent_node.part_index, part_index)) this_changes_direction = 1;
+					if(dtp.ChangedDirection(this.parent_node.part_index, part_index))
+						this_changes_direction = 1;
 					if(dtp.ChangedDirection(other.parent_node.part_index, other.part_index))
 						other_changes_direction = 1;
 				}
 
-				if(this_changes_direction == other_changes_direction){
-					if(dtp.IsLine(part_index)) return -1;
-					else if(dtp.IsLine(other.part_index)) return 1;
-					else return CompareForSearch(this, other);
-				}else return this_changes_direction - other_changes_direction;
+				if(this_changes_direction == other_changes_direction)
+				{
+					if(dtp.IsLine(part_index))
+						return -1;
+					else if(dtp.IsLine(other.part_index))
+						return 1;
+					else
+						return CompareForSearch(this, other);
+				}
+				else
+				{
+					return this_changes_direction - other_changes_direction;
+				}
 			}else return h - other.h;
 		}else return f - other.f;
 	}
@@ -130,7 +139,27 @@ class Path {
 
 	function Append(path_to_append){
 		local path = this;
-		while(path.child_path != null) path = path.child_path;
+		while(path.child_path != null) path = path.child_path; // seuraajalista
+		path.child_path = path_to_append;
+		path_to_append.parent_path = path;
+	}
+	
+	/**
+	 * Gets all tiles that this path touches.
+	 * @return AITileList that contains all tiles on this path.
+	 */
+	function GetTiles() {
+		local path = this;
+		local tiles = AITileList();
+		
+		do {  
+			if(!tiles.HasItem(tile)) {
+				// TODO: Find the tiles from the part then add everything to the tiles.
+				tiles.AddItem(tile);
+			}
+			path = path.child_path;
+		} while(path.child_path != null);
+		
 		path.child_path = path_to_append;
 		path_to_append.parent_path = path;
 	}

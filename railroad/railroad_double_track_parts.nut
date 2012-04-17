@@ -207,7 +207,6 @@ class DoubleTrackParts {
 	function ChangedDirection(parent_part, children_part);
 	function IsLineBendOrDiagonal(part_index);
 	function IsLine(part_index);
-	function IsNotLine(part_index);
 	function IsBend(part_index);
 	function IsDiagonal(part_index);
 	function GetDoublePartTilesHeight(tile, part_index);
@@ -224,6 +223,11 @@ class DoubleTrackParts {
 	function IsBridgeOrTunnel(part_index);
 
 	/* Private: */
+	function InitializeLines();
+	function InitializeDiagonals();
+	function InitializeBends();
+	function InitializeJunctions();
+	function InitializeDepotParts();
 	function Initialize();
 }
 
@@ -266,10 +270,13 @@ function DoubleTrackParts::AreTracksOnSameHeight(tile, part_index){
 }
 
 function DoubleTrackParts::IsLineLevel(tile, part_index){
-	if(!IsLine(part_index)) throw("This function only supports lines.");
+	if(!IsLine(part_index))
+		throw("This function only supports lines.");
 	foreach(section in parts[part_index].sections){
-		if(!RailroadCommon.IsTrackLevel(tile + section.offset, section.track)) return false;
+		if(!RailroadCommon.IsTrackLevel(tile + section.offset, section.track))
+			return false;
 	}
+
 	return true;
 }
 
@@ -305,177 +312,1020 @@ function DoubleTrackParts::IsBoomerang(part_index){
 	return EN_BOOMERANG <= part_index && part_index <= WN_BOOMERANG;
 }
 
-function DoubleTrackParts::Initialize(){
+function DoubleTrackParts::InitializeLines(parts) {
 	local i, part;
-	parts = array(N_PARTS);
-	for(i = 0 ; i < N_PARTS ; i++){
-		if(IsJunction(i))
-			parts[i] = JunctionPart();
-		else if(IsDepot(i))
-			parts[i] = DepotPart();
-		else if(IsLineBendOrDiagonal(i))
-			parts[i] = ConventionalPart();
-	}
 
-	/* Depot Parts: */
-
-	/* NEW_V */
-	part = parts[NEW_V];
-
-	part.depot_positions = array(1);
-	part.depot_positions[0] = DepotPosition();
-	part.depot_positions[0].sections = array(2);
-	part.depot_positions[0].sections[0] = Section(
-		AIMap.GetTileIndex(0, 0), AIRail.RAILTRACK_SW_SE);
-	part.depot_positions[0].sections[1] = Section(
-		AIMap.GetTileIndex(0, 0), AIRail.RAILTRACK_NE_SE);
-	part.depot_positions[0].offset = AIMap.GetTileIndex(0, 1);
-
-	/* SWE_V */
-	part = parts[SWE_V];
-
-	part.depot_positions = array(1);
-	part.depot_positions[0] = DepotPosition();
-	part.depot_positions[0].sections = array(2);
-	part.depot_positions[0].sections[0] = Section(
-		AIMap.GetTileIndex(0, 0), AIRail.RAILTRACK_NW_NE);
-	part.depot_positions[0].sections[1] = Section(
-		AIMap.GetTileIndex(0, 0), AIRail.RAILTRACK_NW_SW);
-	part.depot_positions[0].offset = AIMap.GetTileIndex(0, -1);
-
-	/* SEN_V */
-	part = parts[SEN_V];
-
-	part.depot_positions = array(1);
-	part.depot_positions[0] = DepotPosition();
-	part.depot_positions[0].sections = array(2);
-	part.depot_positions[0].sections[0] = Section(
-		AIMap.GetTileIndex(0, 0), AIRail.RAILTRACK_SW_SE);
-	part.depot_positions[0].sections[1] = Section(
-		AIMap.GetTileIndex(0, 0), AIRail.RAILTRACK_NW_SW);
-	part.depot_positions[0].offset = AIMap.GetTileIndex(1, 0);
-
-	/* NWS_V */
-	part = parts[NWS_V];
-
-	part.depot_positions = array(1);
-	part.depot_positions[0] = DepotPosition();
-	part.depot_positions[0].sections = array(2);
-	part.depot_positions[0].sections[0] = Section(
-		AIMap.GetTileIndex(0, 0), AIRail.RAILTRACK_NW_NE);
-	part.depot_positions[0].sections[1] = Section(
-		AIMap.GetTileIndex(0, 0), AIRail.RAILTRACK_NE_SE);
-	part.depot_positions[0].offset = AIMap.GetTileIndex(-1, 0);
-
-	/* EN_BOOMERANG */
-	part = parts[EN_BOOMERANG];
-	part.sections = array(3);
+	/* WE_LINE */
+	part = parts[WE_LINE];
+	part.next_tile = AIMap.GetTileIndex(1, 0);
+	part.sections = array(2);
 	part.sections[0] = Section(
-		AIMap.GetTileIndex(0, 0), AIRail.RAILTRACK_NW_SE);
+		AIMap.GetTileIndex(0, 0), AIRail.RAILTRACK_NE_SW);
 	part.sections[1] = Section(
-		AIMap.GetTileIndex(0, -1), AIRail.RAILTRACK_SW_SE);
-	part.sections[2] = Section(
-		AIMap.GetTileIndex(1, -1), AIRail.RAILTRACK_NE_SW);
-
-	part.depot_positions = array(2);
-	part.depot_positions[0] = DepotPosition();
-	part.depot_positions[0].sections = array(2);
-	part.depot_positions[0].sections[0] = Section(
-		AIMap.GetTileIndex(0, -1), AIRail.RAILTRACK_NW_SE);
-	part.depot_positions[0].sections[1] = Section(
-		AIMap.GetTileIndex(0, -1), AIRail.RAILTRACK_NW_SW);
-	part.depot_positions[0].offset = AIMap.GetTileIndex(0, -2);
-
-	part.depot_positions[1] = DepotPosition();
-	part.depot_positions[1].sections = array(2);
-	part.depot_positions[1].sections[0] = Section(
 		AIMap.GetTileIndex(0, -1), AIRail.RAILTRACK_NE_SW);
-	part.depot_positions[1].sections[1] = Section(
-		AIMap.GetTileIndex(0, -1), AIRail.RAILTRACK_NE_SE);
-	part.depot_positions[1].offset = AIMap.GetTileIndex(-1, -1);
 
-	/* SW_BOOMERANG */
-	part = parts[SW_BOOMERANG];
-	part.sections = array(3);
+	part.continuation_parts = array(5);
+	part.continuation_parts[0] = WE_LINE;
+	part.continuation_parts[1] = WE_P_DIAGONAL;
+	part.continuation_parts[2] = WE_S_DIAGONAL;
+	part.continuation_parts[3] = WN_BEND;
+	part.continuation_parts[4] = WS_BEND;
+
+	part.previous_parts = array(5);
+	part.previous_parts[0] = WE_LINE;
+	part.previous_parts[1] = WE_P_DIAGONAL;
+	part.previous_parts[2] = WE_S_DIAGONAL;
+	part.previous_parts[3] = SE_BEND;
+	part.previous_parts[4] = NE_BEND;
+
+	part.points = array(6);
+	part.points[0] = AIMap.GetTileIndex(1, 1);
+	part.points[1] = AIMap.GetTileIndex(1, 0);
+	part.points[2] = AIMap.GetTileIndex(1, -1);
+	part.points[3] = AIMap.GetTileIndex(0, 1);
+	part.points[4] = AIMap.GetTileIndex(0, 0);
+	part.points[5] = AIMap.GetTileIndex(0, -1);
+
+	part.signal_senses = array(2);
+	part.signal_senses[0] = RailroadCommon.COUNTERCLOCKWISE;
+	part.signal_senses[1] = RailroadCommon.CLOCKWISE;
+
+	part.junctions = array(2);
+	part.junctions[0] = Junction(AIMap.GetTileIndex(0, -1), J_NE_HOOK);
+	part.junctions[1] = Junction(AIMap.GetTileIndex(0, 0), J_SE_HOOK);
+
+	part.depots = array(2);
+	part.depots[0] = Depot(AIMap.GetTileIndex(0, 0), NEW_V);
+	part.depots[1] = Depot(AIMap.GetTileIndex(0, -1), SWE_V);
+
+	part.parts_keep_direction = array(22);
+	for(local i = 0 ; i < 22 ; i++)
+		part.parts_keep_direction[i] = false;
+	part.parts_keep_direction[WE_LINE] = true;
+	part.parts_keep_direction[TUNNEL] = true;
+	part.parts_keep_direction[BRIDGE] = true;
+
+	/* EW_LINE */
+	part = parts[EW_LINE];
+	part.next_tile = AIMap.GetTileIndex(-1, 0);
+	part.sections = array(2);
 	part.sections[0] = Section(
-		AIMap.GetTileIndex(0, 0), AIRail.RAILTRACK_NE_SW);
-	part.sections[1] = Section(
-		AIMap.GetTileIndex(1, 0), AIRail.RAILTRACK_NW_NE);
-	part.sections[2] = Section(
-		AIMap.GetTileIndex(1, -1), AIRail.RAILTRACK_NW_SE);
-
-	part.depot_positions = array(2);
-	part.depot_positions[0] = DepotPosition();
-	part.depot_positions[0].sections = array(2);
-	part.depot_positions[0].sections[0] = Section(
-		AIMap.GetTileIndex(1, 0), AIRail.RAILTRACK_NW_SE);
-	part.depot_positions[0].sections[1] = Section(
-		AIMap.GetTileIndex(1, 0), AIRail.RAILTRACK_NE_SE);
-	part.depot_positions[0].offset = AIMap.GetTileIndex(1, 1);
-
-	part.depot_positions[1] = DepotPosition();
-	part.depot_positions[1].sections = array(2);
-	part.depot_positions[1].sections[0] = Section(
-		AIMap.GetTileIndex(1, 0), AIRail.RAILTRACK_NE_SW);
-	part.depot_positions[1].sections[1] = Section(
-		AIMap.GetTileIndex(1, 0), AIRail.RAILTRACK_NW_SW);
-	part.depot_positions[1].offset = AIMap.GetTileIndex(2, 0);
-
-	/* SE_BOOMERANG */
-	part = parts[SE_BOOMERANG];
-	part.sections = array(3);
-	part.sections[0] = Section(
-		AIMap.GetTileIndex(0, 0), AIRail.RAILTRACK_NE_SW);
-	part.sections[1] = Section(
-		AIMap.GetTileIndex(-1, 0), AIRail.RAILTRACK_NW_SW);
-	part.sections[2] = Section(
-		AIMap.GetTileIndex(-1, -1), AIRail.RAILTRACK_NW_SE);
-
-	part.depot_positions = array(2);
-	part.depot_positions[0] = DepotPosition();
-	part.depot_positions[0].sections = array(2);
-	part.depot_positions[0].sections[0] = Section(
 		AIMap.GetTileIndex(-1, 0), AIRail.RAILTRACK_NE_SW);
-	part.depot_positions[0].sections[1] = Section(
-		AIMap.GetTileIndex(-1, 0), AIRail.RAILTRACK_NW_NE);
-	part.depot_positions[0].offset = AIMap.GetTileIndex(-2, 0);
-
-	part.depot_positions[1] = DepotPosition();
-	part.depot_positions[1].sections = array(2);
-	part.depot_positions[1].sections[0] = Section(
-		AIMap.GetTileIndex(-1, 0), AIRail.RAILTRACK_NW_SE);
-	part.depot_positions[1].sections[1] = Section(
-		AIMap.GetTileIndex(-1, 0), AIRail.RAILTRACK_SW_SE);
-	part.depot_positions[1].offset = AIMap.GetTileIndex(-1, 1);
-
-	/* WN_BOOMERANG */
-	part = parts[WN_BOOMERANG];
-	part.sections = array(3);
-	part.sections[0] = Section(
-		AIMap.GetTileIndex(0, 0), AIRail.RAILTRACK_NW_SE);
 	part.sections[1] = Section(
-		AIMap.GetTileIndex(0, -1), AIRail.RAILTRACK_NE_SE);
-	part.sections[2] = Section(
 		AIMap.GetTileIndex(-1, -1), AIRail.RAILTRACK_NE_SW);
 
-	part.depot_positions = array(2);
-	part.depot_positions[0] = DepotPosition();
-	part.depot_positions[0].sections = array(2);
-	part.depot_positions[0].sections[0] = Section(
+	part.continuation_parts = array(5);
+	part.continuation_parts[0] = EW_LINE;
+	part.continuation_parts[1] = EW_P_DIAGONAL;
+	part.continuation_parts[2] = EW_S_DIAGONAL;
+	part.continuation_parts[3] = EN_BEND;
+	part.continuation_parts[4] = ES_BEND;
+
+	part.previous_parts = array(5);
+	part.previous_parts[0] = EW_LINE;
+	part.previous_parts[1] = EW_P_DIAGONAL;
+	part.previous_parts[2] = EW_S_DIAGONAL;
+	part.previous_parts[3] = NW_BEND;
+	part.previous_parts[4] = SW_BEND;
+
+	part.points = array(6);
+	part.points[0] = AIMap.GetTileIndex(-1, -1);
+	part.points[1] = AIMap.GetTileIndex(-1, 0);
+	part.points[2] = AIMap.GetTileIndex(-1, 1);
+	part.points[3] = AIMap.GetTileIndex(0, -1);
+	part.points[4] = AIMap.GetTileIndex(0, 0);
+	part.points[5] = AIMap.GetTileIndex(0, 1);
+
+	part.signal_senses = array(2);
+	part.signal_senses[0] = RailroadCommon.COUNTERCLOCKWISE;
+	part.signal_senses[1] = RailroadCommon.CLOCKWISE;
+
+	part.junctions = array(2);
+	part.junctions[0] = Junction(AIMap.GetTileIndex(-1, -1), J_NW_HOOK);
+	part.junctions[1] = Junction(AIMap.GetTileIndex(-1, 0), J_SW_HOOK);
+
+	part.depots = array(2);
+	part.depots[0] = Depot(AIMap.GetTileIndex(-1, -1), SWE_V);
+	part.depots[1] = Depot(AIMap.GetTileIndex(-1, 0), NEW_V);
+
+	part.parts_keep_direction = array(22);
+	for(local i = 0 ; i < 22 ; i++)
+		part.parts_keep_direction[i] = false;
+	part.parts_keep_direction[EW_LINE] = true;
+	part.parts_keep_direction[TUNNEL] = true;
+	part.parts_keep_direction[BRIDGE] = true;
+
+	/* SN_LINE */
+	part = parts[SN_LINE];
+	part.next_tile = AIMap.GetTileIndex(0, 1);
+	part.sections = array(2);
+	part.sections[0] = Section(
+		AIMap.GetTileIndex(0, 0), AIRail.RAILTRACK_NW_SE);
+	part.sections[1] = Section(
+		AIMap.GetTileIndex(-1, 0), AIRail.RAILTRACK_NW_SE);
+
+	part.continuation_parts = array(5);
+	part.continuation_parts[0] = SN_LINE;
+	part.continuation_parts[1] = SN_P_DIAGONAL;
+	part.continuation_parts[2] = SN_S_DIAGONAL;
+	part.continuation_parts[3] = SE_BEND;
+	part.continuation_parts[4] = SW_BEND;
+
+	part.previous_parts = array(5);
+	part.previous_parts[0] = SN_LINE;
+	part.previous_parts[1] = SN_P_DIAGONAL;
+	part.previous_parts[2] = SN_S_DIAGONAL;
+	part.previous_parts[3] = WN_BEND;
+	part.previous_parts[4] = EN_BEND;
+
+	part.points = array(6);
+	part.points[0] = AIMap.GetTileIndex(-1, 1);
+	part.points[1] = AIMap.GetTileIndex(0, 1);
+	part.points[2] = AIMap.GetTileIndex(1, 1);
+	part.points[3] = AIMap.GetTileIndex(-1, 0);
+	part.points[4] = AIMap.GetTileIndex(0, 0);
+	part.points[5] = AIMap.GetTileIndex(1, 0);
+
+	part.signal_senses = array(2);
+	part.signal_senses[0] = RailroadCommon.COUNTERCLOCKWISE;
+	part.signal_senses[1] = RailroadCommon.CLOCKWISE;
+
+	part.junctions = array(2);
+	part.junctions[0] = Junction(AIMap.GetTileIndex(0, 0), J_WN_HOOK);
+	part.junctions[1] = Junction(AIMap.GetTileIndex(-1, 0), J_EN_HOOK);
+
+	part.depots = array(2);
+	part.depots[0] = Depot(AIMap.GetTileIndex(-1, 0), NWS_V);
+	part.depots[1] = Depot(AIMap.GetTileIndex(0, 0), SEN_V);
+
+	part.parts_keep_direction = array(22);
+	for(local i = 0 ; i < 22 ; i++)
+		part.parts_keep_direction[i] = false;
+	part.parts_keep_direction[SN_LINE] = true;
+	part.parts_keep_direction[TUNNEL] = true;
+	part.parts_keep_direction[BRIDGE] = true;
+
+	/* NS_LINE */
+	part = parts[NS_LINE];
+	part.next_tile = AIMap.GetTileIndex(0, -1);
+	part.sections = array(2);
+	part.sections[0] = Section(
 		AIMap.GetTileIndex(0, -1), AIRail.RAILTRACK_NW_SE);
-	part.depot_positions[0].sections[1] = Section(
-		AIMap.GetTileIndex(0, -1), AIRail.RAILTRACK_NW_NE);
-	part.depot_positions[0].offset = AIMap.GetTileIndex(0, -2);
+	part.sections[1] = Section(
+		AIMap.GetTileIndex(-1, -1), AIRail.RAILTRACK_NW_SE);
 
-	part.depot_positions[1] = DepotPosition();
-	part.depot_positions[1].sections = array(2);
-	part.depot_positions[1].sections[0] = Section(
-		AIMap.GetTileIndex(0, -1), AIRail.RAILTRACK_NE_SW);
-	part.depot_positions[1].sections[1] = Section(
+	part.continuation_parts = array(5);
+	part.continuation_parts[0] = NS_LINE;
+	part.continuation_parts[1] = NS_P_DIAGONAL;
+	part.continuation_parts[2] = NS_S_DIAGONAL;
+	part.continuation_parts[3] = NE_BEND;
+	part.continuation_parts[4] = NW_BEND;
+
+	part.previous_parts = array(5);
+	part.previous_parts[0] = NS_LINE;
+	part.previous_parts[1] = NS_P_DIAGONAL;
+	part.previous_parts[2] = NS_S_DIAGONAL;
+	part.previous_parts[3] = WS_BEND;
+	part.previous_parts[4] = ES_BEND;
+
+	part.points = array(6);
+	part.points[0] = AIMap.GetTileIndex(1, -1);
+	part.points[1] = AIMap.GetTileIndex(0, -1);
+	part.points[2] = AIMap.GetTileIndex(-1, -1);
+	part.points[3] = AIMap.GetTileIndex(1, 0);
+	part.points[4] = AIMap.GetTileIndex(0, 0);
+	part.points[5] = AIMap.GetTileIndex(-1, 0);
+
+	part.signal_senses = array(2);
+	part.signal_senses[0] = RailroadCommon.COUNTERCLOCKWISE;
+	part.signal_senses[1] = RailroadCommon.CLOCKWISE;
+
+	part.junctions = array(2);
+	part.junctions[0] = Junction(AIMap.GetTileIndex(-1, -1), J_ES_HOOK);
+	part.junctions[1] = Junction(AIMap.GetTileIndex(0, -1), J_WS_HOOK);
+
+	part.depots = array(2);
+	part.depots[0] = Depot(AIMap.GetTileIndex(0, -1), SEN_V);
+	part.depots[1] = Depot(AIMap.GetTileIndex(-1, -1), NWS_V);
+
+	part.parts_keep_direction = array(22);
+	for(local i = 0 ; i < 22 ; i++)
+		part.parts_keep_direction[i] = false;
+	part.parts_keep_direction[NS_LINE] = true;
+	part.parts_keep_direction[TUNNEL] = true;
+	part.parts_keep_direction[BRIDGE] = true;
+}
+
+function DoubleTrackParts::InitializeDiagonals(parts){
+	local i, part;
+
+	/* EW_S_DIAGONAL */
+	part = parts[EW_S_DIAGONAL];
+	part.next_tile = AIMap.GetTileIndex(-1, 1);
+	part.sections = array(4);
+	part.sections[0] = Section(
+		AIMap.GetTileIndex(-1, 0), AIRail.RAILTRACK_SW_SE);
+	part.sections[1] = Section(
+		AIMap.GetTileIndex(-1, 0), AIRail.RAILTRACK_NW_NE);
+	part.sections[2] = Section(
+		AIMap.GetTileIndex(-1, -1), AIRail.RAILTRACK_SW_SE);
+	part.sections[3] = Section(
+		AIMap.GetTileIndex(-1, 1), AIRail.RAILTRACK_NW_NE);
+
+	part.continuation_parts = array(3);
+	part.continuation_parts[0] = EW_S_DIAGONAL;
+	part.continuation_parts[1] = EN_BEND;
+	part.continuation_parts[2] = EW_LINE;
+
+	part.previous_parts = array(3);
+	part.previous_parts[0] = EW_S_DIAGONAL;
+	part.previous_parts[1] = SW_BEND;
+	part.previous_parts[2] = EW_LINE;
+
+	part.points = array(6);
+	part.points[0] = AIMap.GetTileIndex(-1, 0);
+	part.points[1] = AIMap.GetTileIndex(-1, 1);
+	part.points[2] = AIMap.GetTileIndex(-1, 2);
+	part.points[3] = AIMap.GetTileIndex(0, -1);
+	part.points[4] = AIMap.GetTileIndex(0, 0);
+	part.points[5] = AIMap.GetTileIndex(0, 1);
+
+	part.signal_senses = array(4);
+	part.signal_senses[0] = RailroadCommon.COUNTERCLOCKWISE;
+	part.signal_senses[1] = RailroadCommon.INVALID_SENSE;
+	part.signal_senses[2] = RailroadCommon.CLOCKWISE;
+	part.signal_senses[3] = RailroadCommon.INVALID_SENSE;
+
+	part.junctions = array(2);
+	part.junctions[0] = Junction(AIMap.GetTileIndex(1, 1), J_EW_RECTANGLE);
+	part.junctions[1] = Junction(AIMap.GetTileIndex(0, -3), J_SN_RECTANGLE);
+
+	part.depots = array(2);
+	part.depots[0] = Depot(AIMap.GetTileIndex(-1, -1), EN_BOOMERANG);
+	part.depots[1] = Depot(AIMap.GetTileIndex(-1, 1), SW_BOOMERANG);
+
+	part.parts_keep_direction = array(22);
+	for(local i = 0 ; i < 22 ; i++)
+		part.parts_keep_direction[i] = false;
+	part.parts_keep_direction[EW_S_DIAGONAL] = true;
+	part.parts_keep_direction[EN_BEND] = true;
+
+	/* WE_S_DIAGONAL */
+	part = parts[WE_S_DIAGONAL];
+	part.next_tile = AIMap.GetTileIndex(1, -1);
+	part.sections = array(4);
+	part.sections[0] = Section(
 		AIMap.GetTileIndex(0, -1), AIRail.RAILTRACK_SW_SE);
-	part.depot_positions[1].offset = AIMap.GetTileIndex(1, -1);
+	part.sections[1] = Section(
+		AIMap.GetTileIndex(0, -1), AIRail.RAILTRACK_NW_NE);
+	part.sections[2] = Section(
+		AIMap.GetTileIndex(0, -2), AIRail.RAILTRACK_SW_SE);
+	part.sections[3] = Section(
+		AIMap.GetTileIndex(0, 0), AIRail.RAILTRACK_NW_NE);
 
-	/* Junctions: */
+	part.continuation_parts = array(3);
+	part.continuation_parts[0] = WE_S_DIAGONAL;
+	part.continuation_parts[1] = WS_BEND;
+	part.continuation_parts[2] = WE_LINE;
+
+	part.previous_parts = array(3);
+	part.previous_parts[0] = WE_S_DIAGONAL;
+	part.previous_parts[1] = NE_BEND;
+	part.previous_parts[2] = WE_LINE;
+
+	part.points = array(6);
+	part.points[0] = AIMap.GetTileIndex(1, 0);
+	part.points[1] = AIMap.GetTileIndex(1, -1);
+	part.points[2] = AIMap.GetTileIndex(1, -2);
+	part.points[3] = AIMap.GetTileIndex(0, 1);
+	part.points[4] = AIMap.GetTileIndex(0, 0);
+	part.points[5] = AIMap.GetTileIndex(0, -1);
+
+	part.signal_senses = array(4);
+	part.signal_senses[0] = RailroadCommon.COUNTERCLOCKWISE;
+	part.signal_senses[1] = RailroadCommon.INVALID_SENSE;
+	part.signal_senses[2] = RailroadCommon.CLOCKWISE;
+	part.signal_senses[3] = RailroadCommon.INVALID_SENSE;
+
+	part.junctions = array(2);
+	part.junctions[0] = Junction(AIMap.GetTileIndex(0, -2), J_WE_RECTANGLE);
+	part.junctions[1] = Junction(AIMap.GetTileIndex(-1, 0), J_NS_RECTANGLE);
+
+	part.depots = array(2);
+	part.depots[0] = Depot(AIMap.GetTileIndex(-1, 1), SW_BOOMERANG);
+	part.depots[1] = Depot(AIMap.GetTileIndex(-1, -1), EN_BOOMERANG);
+
+	part.parts_keep_direction = array(22);
+	for(local i = 0 ; i < 22 ; i++)
+		part.parts_keep_direction[i] = false;
+	part.parts_keep_direction[WE_S_DIAGONAL] = true;
+	part.parts_keep_direction[WS_BEND] = true;
+
+	/* NS_S_DIAGONAL */
+	part = parts[NS_S_DIAGONAL];
+	part.next_tile = AIMap.GetTileIndex(1, -1);
+	part.sections = array(4);
+	part.sections[0] = Section(
+		AIMap.GetTileIndex(0, -1), AIRail.RAILTRACK_NW_NE);
+	part.sections[1] = Section(
+		AIMap.GetTileIndex(0, -1), AIRail.RAILTRACK_SW_SE);
+	part.sections[2] = Section(
+		AIMap.GetTileIndex(-1, -1), AIRail.RAILTRACK_SW_SE);
+	part.sections[3] = Section(
+		AIMap.GetTileIndex(1, -1), AIRail.RAILTRACK_NW_NE);
+
+	part.continuation_parts = array(3);
+	part.continuation_parts[0] = NS_S_DIAGONAL;
+	part.continuation_parts[1] = NE_BEND;
+	part.continuation_parts[2] = NS_LINE;
+
+	part.previous_parts = array(3);
+	part.previous_parts[0] = NS_S_DIAGONAL;
+	part.previous_parts[1] = WS_BEND;
+	part.previous_parts[2] = NS_LINE;
+
+	part.points = array(6);
+	part.points[0] = AIMap.GetTileIndex(2, -1);
+	part.points[1] = AIMap.GetTileIndex(1, -1);
+	part.points[2] = AIMap.GetTileIndex(0, -1);
+	part.points[3] = AIMap.GetTileIndex(1, 0);
+	part.points[4] = AIMap.GetTileIndex(0, 0);
+	part.points[5] = AIMap.GetTileIndex(-1, 0);
+
+	part.signal_senses = array(4);
+	part.signal_senses[0] = RailroadCommon.CLOCKWISE;
+	part.signal_senses[1] = RailroadCommon.INVALID_SENSE;
+	part.signal_senses[2] = RailroadCommon.INVALID_SENSE;
+	part.signal_senses[3] = RailroadCommon.COUNTERCLOCKWISE;
+
+	part.junctions = array(2);
+	part.junctions[0] = Junction(AIMap.GetTileIndex(0, -1), J_NS_RECTANGLE);
+	part.junctions[1] = Junction(AIMap.GetTileIndex(-1, -1), J_WE_RECTANGLE);
+
+	part.depots = array(2);
+	part.depots[0] = Depot(AIMap.GetTileIndex(0, 0), SW_BOOMERANG);
+	part.depots[1] = Depot(AIMap.GetTileIndex(-2, 0), EN_BOOMERANG);
+
+	part.parts_keep_direction = array(22);
+	for(local i = 0 ; i < 22 ; i++)
+		part.parts_keep_direction[i] = false;
+	part.parts_keep_direction[NS_S_DIAGONAL] = true;
+	part.parts_keep_direction[NE_BEND] = true;
+
+	/* SN_S_DIAGONAL */
+	part = parts[SN_S_DIAGONAL];
+	part.next_tile = AIMap.GetTileIndex(-1, 1);
+	part.sections = array(4);
+	part.sections[0] = Section(
+		AIMap.GetTileIndex(-1, 0), AIRail.RAILTRACK_NW_NE);
+	part.sections[1] = Section(
+		AIMap.GetTileIndex(-1, 0), AIRail.RAILTRACK_SW_SE);
+	part.sections[2] = Section(
+		AIMap.GetTileIndex(0, 0), AIRail.RAILTRACK_NW_NE);
+	part.sections[3] = Section(
+		AIMap.GetTileIndex(-2, 0), AIRail.RAILTRACK_SW_SE);
+
+	part.continuation_parts = array(3);
+	part.continuation_parts[0] = SN_S_DIAGONAL;
+	part.continuation_parts[1] = SW_BEND;
+	part.continuation_parts[2] = SN_LINE;
+
+	part.previous_parts = array(3);
+	part.previous_parts[0] = SN_S_DIAGONAL;
+	part.previous_parts[1] = EN_BEND;
+	part.previous_parts[2] = SN_LINE;
+
+	part.points = array(6);
+	part.points[0] = AIMap.GetTileIndex(-2, 1);
+	part.points[1] = AIMap.GetTileIndex(-1, 1);
+	part.points[2] = AIMap.GetTileIndex(0, 1);
+	part.points[3] = AIMap.GetTileIndex(-1, 0);
+	part.points[4] = AIMap.GetTileIndex(0, 0);
+	part.points[5] = AIMap.GetTileIndex(1, 0);
+
+	part.signal_senses = array(4);
+	part.signal_senses[0] = RailroadCommon.INVALID_SENSE;
+	part.signal_senses[1] = RailroadCommon.COUNTERCLOCKWISE;
+	part.signal_senses[2] = RailroadCommon.INVALID_SENSE;
+	part.signal_senses[3] = RailroadCommon.CLOCKWISE;
+
+	part.junctions = array(2);
+	part.junctions[0] = Junction(AIMap.GetTileIndex(-1, -2), J_SN_RECTANGLE);
+	part.junctions[1] = Junction(AIMap.GetTileIndex(2, 0), J_EW_RECTANGLE);
+
+	part.depots = array(2);
+	part.depots[0] = Depot(AIMap.GetTileIndex(-2, 0), EN_BOOMERANG);
+	part.depots[1] = Depot(AIMap.GetTileIndex(0, 0), SW_BOOMERANG);
+
+	part.parts_keep_direction = array(22);
+	for(local i = 0 ; i < 22 ; i++)
+		part.parts_keep_direction[i] = false;
+	part.parts_keep_direction[SN_S_DIAGONAL] = true;
+	part.parts_keep_direction[SW_BEND] = true;
+
+	/* EW_P_DIAGONAL */
+	part = parts[EW_P_DIAGONAL];
+	part.next_tile = AIMap.GetTileIndex(-1, -1);
+	part.sections = array(4);
+	part.sections[0] = Section(
+		AIMap.GetTileIndex(-1, -1), AIRail.RAILTRACK_NW_SW);
+	part.sections[1] = Section(
+		AIMap.GetTileIndex(-1, -1), AIRail.RAILTRACK_NE_SE);
+	part.sections[2] = Section(
+		AIMap.GetTileIndex(-1, 0), AIRail.RAILTRACK_NW_SW);
+	part.sections[3] = Section(
+		AIMap.GetTileIndex(-1, -2), AIRail.RAILTRACK_NE_SE);
+
+	part.continuation_parts = array(3);
+	part.continuation_parts[0] = EW_P_DIAGONAL;
+	part.continuation_parts[1] = ES_BEND;
+	part.continuation_parts[2] = EW_LINE;
+
+	part.previous_parts = array(3);
+	part.previous_parts[0] = EW_P_DIAGONAL;
+	part.previous_parts[1] = NW_BEND;
+	part.previous_parts[2] = EW_LINE;
+
+	part.points = array(6);
+	part.points[0] = AIMap.GetTileIndex(-1, -2);
+	part.points[1] = AIMap.GetTileIndex(-1, -1);
+	part.points[2] = AIMap.GetTileIndex(-1, 0);
+	part.points[3] = AIMap.GetTileIndex(0, -1);
+	part.points[4] = AIMap.GetTileIndex(0, 0);
+	part.points[5] = AIMap.GetTileIndex(0, 1);
+
+	part.signal_senses = array(4);
+	part.signal_senses[0] = RailroadCommon.COUNTERCLOCKWISE;
+	part.signal_senses[1] = RailroadCommon.INVALID_SENSE;
+	part.signal_senses[2] = RailroadCommon.CLOCKWISE;
+	part.signal_senses[3] = RailroadCommon.INVALID_SENSE;
+
+	part.junctions = array(2);
+	part.junctions[0] = Junction(AIMap.GetTileIndex(-1, 0), J_NS_RECTANGLE);
+	part.junctions[1] = Junction(AIMap.GetTileIndex(1, -1), J_EW_RECTANGLE);
+
+	part.depots = array(2);
+	part.depots[0] = Depot(AIMap.GetTileIndex(0, -1), WN_BOOMERANG);
+	part.depots[1] = Depot(AIMap.GetTileIndex(0, 1), SE_BOOMERANG);
+
+	part.parts_keep_direction = array(22);
+	for(local i = 0 ; i < 22 ; i++)
+		part.parts_keep_direction[i] = false;
+	part.parts_keep_direction[EW_P_DIAGONAL] = true;
+	part.parts_keep_direction[ES_BEND] = true;
+
+	/* WE_P_DIAGONAL */
+	part = parts[WE_P_DIAGONAL];
+	part.next_tile = AIMap.GetTileIndex(1, 1);
+	part.sections = array(4);
+	part.sections[0] = Section(
+		AIMap.GetTileIndex(0, 0), AIRail.RAILTRACK_NW_SW);
+	part.sections[1] = Section(
+		AIMap.GetTileIndex(0, 0), AIRail.RAILTRACK_NE_SE)
+	part.sections[2] = Section(
+		AIMap.GetTileIndex(0, -1), AIRail.RAILTRACK_NE_SE);
+	part.sections[3] = Section(
+		AIMap.GetTileIndex(0, 1), AIRail.RAILTRACK_NW_SW);
+
+	part.continuation_parts = array(3);
+	part.continuation_parts[0] = WE_P_DIAGONAL;
+	part.continuation_parts[1] = WN_BEND;
+	part.continuation_parts[2] = WE_LINE;
+
+	part.previous_parts = array(3);
+	part.previous_parts[0] = WE_P_DIAGONAL;
+	part.previous_parts[1] = SE_BEND;
+	part.previous_parts[2] = WE_LINE;
+
+	part.points = array(6);
+	part.points[0] = AIMap.GetTileIndex(1, 2);
+	part.points[1] = AIMap.GetTileIndex(1, 1);
+	part.points[2] = AIMap.GetTileIndex(1, 0);
+	part.points[3] = AIMap.GetTileIndex(0, 1);
+	part.points[4] = AIMap.GetTileIndex(0, 0);
+	part.points[5] = AIMap.GetTileIndex(0, -1);
+
+	part.signal_senses = array(4);
+	part.signal_senses[0] = RailroadCommon.INVALID_SENSE;
+	part.signal_senses[1] = RailroadCommon.COUNTERCLOCKWISE;
+	part.signal_senses[2] = RailroadCommon.CLOCKWISE;
+	part.signal_senses[3] = RailroadCommon.INVALID_SENSE;
+
+	part.junctions = array(2);
+	part.junctions[0] = Junction(AIMap.GetTileIndex(0, 0), J_WE_RECTANGLE);
+	part.junctions[1] = Junction(AIMap.GetTileIndex(0, -3), J_SN_RECTANGLE);
+
+	part.depots = array(2);
+	part.depots[0] = Depot(AIMap.GetTileIndex(0, 1), SE_BOOMERANG);
+	part.depots[1] = Depot(AIMap.GetTileIndex(0, -1), WN_BOOMERANG);
+
+	part.parts_keep_direction = array(22);
+	for(local i = 0 ; i < 22 ; i++)
+		part.parts_keep_direction[i] = false;
+	part.parts_keep_direction[WE_P_DIAGONAL] = true;
+	part.parts_keep_direction[WN_BEND] = true;
+
+	/* NS_P_DIAGONAL */
+	part = parts[NS_P_DIAGONAL];
+	part.next_tile = AIMap.GetTileIndex(-1, -1);
+	part.sections = array(4);
+	part.sections[0] = Section(
+		AIMap.GetTileIndex(-1, -1), AIRail.RAILTRACK_NE_SE);
+	part.sections[1] = Section(
+		AIMap.GetTileIndex(-1, -1), AIRail.RAILTRACK_NW_SW);
+	part.sections[2] = Section(
+		AIMap.GetTileIndex(-2, -1), AIRail.RAILTRACK_NW_SW);
+	part.sections[3] = Section(
+		AIMap.GetTileIndex(0, -1), AIRail.RAILTRACK_NE_SE);
+
+	part.continuation_parts = array(3);
+	part.continuation_parts[0] = NS_P_DIAGONAL;
+	part.continuation_parts[1] = NW_BEND;
+	part.continuation_parts[2] = NS_LINE;
+
+	part.previous_parts = array(3);
+	part.previous_parts[0] = NS_P_DIAGONAL;
+	part.previous_parts[1] = ES_BEND;
+	part.previous_parts[2] = NS_LINE;
+
+	part.points = array(6);
+	part.points[0] = AIMap.GetTileIndex(0, -1);
+	part.points[1] = AIMap.GetTileIndex(-1, -1);
+	part.points[2] = AIMap.GetTileIndex(-2,-1);
+	part.points[3] = AIMap.GetTileIndex(1, 0);
+	part.points[4] = AIMap.GetTileIndex(0, 0);
+	part.points[5] = AIMap.GetTileIndex(-1, 0);
+
+	part.signal_senses = array(4);
+	part.signal_senses[0] = RailroadCommon.COUNTERCLOCKWISE;
+	part.signal_senses[1] = RailroadCommon.INVALID_SENSE;
+	part.signal_senses[2] = RailroadCommon.INVALID_SENSE;
+	part.signal_senses[3] = RailroadCommon.CLOCKWISE;
+
+	part.junctions = array(2);
+	part.junctions[0] = Junction(AIMap.GetTileIndex(-2, -1), J_NS_RECTANGLE);
+	part.junctions[1] = Junction(AIMap.GetTileIndex(2, 0), J_EW_RECTANGLE);
+
+	part.depots = array(2);
+	part.depots[0] = Depot(AIMap.GetTileIndex(1, 0), WN_BOOMERANG);
+	part.depots[1] = Depot(AIMap.GetTileIndex(-1, 0), SE_BOOMERANG);
+
+	part.parts_keep_direction = array(22);
+	for(local i = 0 ; i < 22 ; i++)
+		part.parts_keep_direction[i] = false;
+	part.parts_keep_direction[NS_P_DIAGONAL] = true;
+	part.parts_keep_direction[NW_BEND] = true;
+
+	/* SN_P_DIAGONAL */
+	part = parts[SN_P_DIAGONAL];
+	part.next_tile = AIMap.GetTileIndex(1, 1);
+	part.sections = array(4);
+	part.sections[0] = Section(
+		AIMap.GetTileIndex(0, 0), AIRail.RAILTRACK_NE_SE);
+	part.sections[1] = Section(
+		AIMap.GetTileIndex(0, 0), AIRail.RAILTRACK_NW_SW);
+	part.sections[2] = Section(
+		AIMap.GetTileIndex(-1, 0), AIRail.RAILTRACK_NW_SW);
+	part.sections[3] = Section(
+		AIMap.GetTileIndex(1, 0), AIRail.RAILTRACK_NE_SE);
+
+	part.continuation_parts = array(3);
+	part.continuation_parts[0] = SN_P_DIAGONAL;
+	part.continuation_parts[1] = SE_BEND;
+	part.continuation_parts[2] = SN_LINE;
+
+	part.previous_parts = array(3);
+	part.previous_parts[0] = SN_P_DIAGONAL;
+	part.previous_parts[1] = WN_BEND;
+	part.previous_parts[2] = SN_LINE;
+
+	part.points = array(6);
+	part.points[0] = AIMap.GetTileIndex(0, 1);
+	part.points[1] = AIMap.GetTileIndex(1, 1);
+	part.points[2] = AIMap.GetTileIndex(2, 1);
+	part.points[3] = AIMap.GetTileIndex(-1, 0);
+	part.points[4] = AIMap.GetTileIndex(0, 0);
+	part.points[5] = AIMap.GetTileIndex(1, 0);
+
+	part.signal_senses = array(4);
+	part.signal_senses[0] = RailroadCommon.COUNTERCLOCKWISE;
+	part.signal_senses[1] = RailroadCommon.INVALID_SENSE;
+	part.signal_senses[2] = RailroadCommon.INVALID_SENSE;
+	part.signal_senses[3] = RailroadCommon.CLOCKWISE;
+
+	part.junctions = array(2);
+	part.junctions[0] = Junction(AIMap.GetTileIndex(1, -2), J_SN_RECTANGLE);
+	part.junctions[1] = Junction(AIMap.GetTileIndex(-1, -1), J_WE_RECTANGLE);
+
+	part.depots = array(2);
+	part.depots[0] = Depot(AIMap.GetTileIndex(-1, 0), SE_BOOMERANG);
+	part.depots[1] = Depot(AIMap.GetTileIndex(1, 0), WN_BOOMERANG);
+
+	part.parts_keep_direction = array(22);
+	for(local i = 0 ; i < 22 ; i++)
+		part.parts_keep_direction[i] = false;
+	part.parts_keep_direction[SN_P_DIAGONAL] = true;
+	part.parts_keep_direction[SE_BEND] = true;
+}
+
+function DoubleTrackParts::InitializeBends(parts){
+	local i, part;
+
+		/* NE_BEND */
+	part = parts[NE_BEND];
+	part.next_tile = AIMap.GetTileIndex(1, -1);
+	part.sections = array(4);
+	part.sections[0] = Section(
+		AIMap.GetTileIndex(0, -1), AIRail.RAILTRACK_SW_SE);
+	part.sections[1] = Section(
+		AIMap.GetTileIndex(0, -1), AIRail.RAILTRACK_NW_NE);
+	part.sections[2] = Section(
+		AIMap.GetTileIndex(0, -2), AIRail.RAILTRACK_SW_SE);
+	part.sections[3] = Section(
+		AIMap.GetTileIndex(-1, -1), AIRail.RAILTRACK_SW_SE);
+
+	part.continuation_parts = array(3);
+	part.continuation_parts[0] = WE_S_DIAGONAL;
+	part.continuation_parts[1] = WS_BEND;
+	part.continuation_parts[2] = WE_LINE;
+
+	part.previous_parts = array(3);
+	part.previous_parts[0] = NS_S_DIAGONAL;
+	part.previous_parts[1] = WS_BEND;
+	part.previous_parts[2] = NS_LINE;
+
+	part.points = array(6);
+	part.points[0] = AIMap.GetTileIndex(1, 0);
+	part.points[1] = AIMap.GetTileIndex(1, -1);
+	part.points[2] = AIMap.GetTileIndex(1, -2);
+	part.points[3] = AIMap.GetTileIndex(0, -1);
+	part.points[4] = AIMap.GetTileIndex(0, 0);
+	part.points[5] = AIMap.GetTileIndex(-1, 0);
+
+	part.signal_senses = array(4);
+	part.signal_senses[0] = RailroadCommon.COUNTERCLOCKWISE;
+	part.signal_senses[1] = RailroadCommon.INVALID_SENSE;
+	part.signal_senses[2] = RailroadCommon.CLOCKWISE;
+	part.signal_senses[3] = RailroadCommon.CLOCKWISE;
+
+	part.junctions = array(1);
+	part.junctions[0] = Junction(AIMap.GetTileIndex(0, -2), J_WE_RECTANGLE);
+
+	part.depots = array(2);
+	part.depots[1] = Depot(AIMap.GetTileIndex(-1, -1), EN_BOOMERANG);
+
+	part.parts_keep_direction = array(22);
+	for(local i = 0 ; i < 22 ; i++)
+		part.parts_keep_direction[i] = false;
+	part.parts_keep_direction[WE_S_DIAGONAL] = true;
+	part.parts_keep_direction[WS_BEND] = true;
+
+	/* EN_BEND */
+	part = parts[EN_BEND];
+	part.next_tile = AIMap.GetTileIndex(-1, 1);
+	part.sections = array(4);
+	part.sections[0] = Section(
+		AIMap.GetTileIndex(-1, 0), AIRail.RAILTRACK_SW_SE);
+	part.sections[1] = Section(
+		AIMap.GetTileIndex(-1, 0), AIRail.RAILTRACK_NW_NE);
+	part.sections[2] = Section(
+		AIMap.GetTileIndex(-1, -1), AIRail.RAILTRACK_SW_SE);
+	part.sections[3] = Section(
+		AIMap.GetTileIndex(-2, 0), AIRail.RAILTRACK_SW_SE);
+
+	part.continuation_parts = array(3);
+	part.continuation_parts[0] = SN_S_DIAGONAL;
+	part.continuation_parts[1] = SW_BEND;
+	part.continuation_parts[2] = SN_LINE;
+
+	part.previous_parts = array(3);
+	part.previous_parts[0] = EW_S_DIAGONAL;
+	part.previous_parts[1] = SW_BEND;
+	part.previous_parts[2] = EW_LINE;
+
+	part.points = array(6);
+	part.points[0] = AIMap.GetTileIndex(0, 1);
+	part.points[1] = AIMap.GetTileIndex(-1, 1);
+	part.points[2] = AIMap.GetTileIndex(-2, 1);
+	part.points[3] = AIMap.GetTileIndex(-1, 0);
+	part.points[4] = AIMap.GetTileIndex(0, 0);
+	part.points[5] = AIMap.GetTileIndex(0, -1);
+
+	part.signal_senses = array(4);
+	part.signal_senses[0] = RailroadCommon.COUNTERCLOCKWISE;
+	part.signal_senses[1] = RailroadCommon.INVALID_SENSE;
+	part.signal_senses[2] = RailroadCommon.CLOCKWISE;
+	part.signal_senses[3] = RailroadCommon.CLOCKWISE;
+
+	part.junctions = array(1);
+	part.junctions[0] = Junction(AIMap.GetTileIndex(-1, -2), J_SN_RECTANGLE);
+
+	part.depots = array(2);
+	part.depots[0] = Depot(AIMap.GetTileIndex(-2, 0), EN_BOOMERANG);
+
+	part.parts_keep_direction = array(22);
+	for(local i = 0 ; i < 22 ; i++)
+		part.parts_keep_direction[i] = false;
+	part.parts_keep_direction[SN_S_DIAGONAL] = true;
+	part.parts_keep_direction[SW_BEND] = true;
+
+	/* WN_BEND */
+	part = parts[WN_BEND];
+	part.next_tile = AIMap.GetTileIndex(1, 1);
+	part.sections = array(4);
+	part.sections[0] = Section(
+		AIMap.GetTileIndex(0, 0), AIRail.RAILTRACK_NW_SW);
+	part.sections[1] = Section(
+		AIMap.GetTileIndex(0, 0), AIRail.RAILTRACK_NE_SE);
+	part.sections[2] = Section(
+		AIMap.GetTileIndex(1, 0), AIRail.RAILTRACK_NE_SE);
+	part.sections[3] = Section(
+		AIMap.GetTileIndex(0, -1), AIRail.RAILTRACK_NE_SE);
+
+	part.continuation_parts = array(3);
+	part.continuation_parts[0] = SN_P_DIAGONAL;
+	part.continuation_parts[1] = SE_BEND;
+	part.continuation_parts[2] = SN_LINE;
+
+	part.previous_parts = array(3);
+	part.previous_parts[0] = WE_P_DIAGONAL;
+	part.previous_parts[1] = SE_BEND;
+	part.previous_parts[2] = WE_LINE;
+
+	part.points = array(6);
+	part.points[0] = AIMap.GetTileIndex(0, 1);
+	part.points[1] = AIMap.GetTileIndex(1, 1);
+	part.points[2] = AIMap.GetTileIndex(2, 1);
+	part.points[3] = AIMap.GetTileIndex(1, 0);
+	part.points[4] = AIMap.GetTileIndex(0, 0);
+	part.points[5] = AIMap.GetTileIndex(0, -1);
+
+	part.signal_senses = array(4);
+	part.signal_senses[0] = RailroadCommon.INVALID_SENSE;
+	part.signal_senses[1] = RailroadCommon.COUNTERCLOCKWISE;
+	part.signal_senses[2] = RailroadCommon.CLOCKWISE;
+	part.signal_senses[3] = RailroadCommon.CLOCKWISE;
+
+	part.junctions = array(1);
+	part.junctions[0] = Junction(AIMap.GetTileIndex(1, -2), J_SN_RECTANGLE);
+
+	part.depots = array(2);
+	part.depots[1] = Depot(AIMap.GetTileIndex(1, 0), WN_BOOMERANG);
+
+	part.parts_keep_direction = array(22);
+	for(local i = 0 ; i < 22 ; i++)
+		part.parts_keep_direction[i] = false;
+	part.parts_keep_direction[SN_P_DIAGONAL] = true;
+	part.parts_keep_direction[SE_BEND] = true;
+
+	/* NW_BEND */
+	part = parts[NW_BEND];
+	part.next_tile = AIMap.GetTileIndex(-1, -1);
+	part.sections = array(4);
+	part.sections[0] = Section(
+		AIMap.GetTileIndex(-1, -1), AIRail.RAILTRACK_NE_SE);
+	part.sections[1] = Section(
+		AIMap.GetTileIndex(-1, -1), AIRail.RAILTRACK_NW_SW);
+	part.sections[2] = Section(
+		AIMap.GetTileIndex(0, -1), AIRail.RAILTRACK_NE_SE);
+	part.sections[3] = Section(
+		AIMap.GetTileIndex(-1, -2), AIRail.RAILTRACK_NE_SE);
+
+	part.continuation_parts = array(3);
+	part.continuation_parts[0] = EW_P_DIAGONAL;
+	part.continuation_parts[1] = ES_BEND;
+	part.continuation_parts[2] = EW_LINE;
+
+	part.previous_parts = array(3);
+	part.previous_parts[0] = NS_P_DIAGONAL;
+	part.previous_parts[1] = ES_BEND;
+	part.previous_parts[2] = NS_LINE;
+
+	part.points = array(6);
+	part.points[0] = AIMap.GetTileIndex(-1, 0);
+	part.points[1] = AIMap.GetTileIndex(-1, -1);
+	part.points[2] = AIMap.GetTileIndex(-1, -2);
+	part.points[3] = AIMap.GetTileIndex(0, -1);
+	part.points[4] = AIMap.GetTileIndex(0, 0);
+	part.points[5] = AIMap.GetTileIndex(1, 0);
+
+	part.signal_senses = array(4);
+	part.signal_senses[0] = RailroadCommon.COUNTERCLOCKWISE;
+	part.signal_senses[1] = RailroadCommon.INVALID_SENSE;
+	part.signal_senses[2] = RailroadCommon.CLOCKWISE;
+	part.signal_senses[3] = RailroadCommon.CLOCKWISE;
+
+	part.junctions = array(1);
+	part.junctions[0] = Junction(AIMap.GetTileIndex(1, -1), J_EW_RECTANGLE);
+
+	part.depots = array(2);
+	part.depots[0] = Depot(AIMap.GetTileIndex(0, -1), WN_BOOMERANG);
+
+	part.parts_keep_direction = array(22);
+	for(local i = 0 ; i < 22 ; i++)
+		part.parts_keep_direction[i] = false;
+	part.parts_keep_direction[EW_P_DIAGONAL] = true;
+	part.parts_keep_direction[ES_BEND] = true;
+
+	/* SW_BEND */
+	part = parts[SW_BEND];
+	part.next_tile = AIMap.GetTileIndex(-1, 1);
+	part.sections = array(4);
+	part.sections[0] = Section(
+		AIMap.GetTileIndex(-1, 0), AIRail.RAILTRACK_NW_NE);
+	part.sections[1] = Section(
+		AIMap.GetTileIndex(-1, 0), AIRail.RAILTRACK_SW_SE);
+	part.sections[2] = Section(
+		AIMap.GetTileIndex(0, 0), AIRail.RAILTRACK_NW_NE);
+	part.sections[3] = Section(
+		AIMap.GetTileIndex(-1, 1), AIRail.RAILTRACK_NW_NE);
+
+	part.continuation_parts = array(3);
+	part.continuation_parts[0] = EW_S_DIAGONAL;
+	part.continuation_parts[1] = EN_BEND;
+	part.continuation_parts[2] = EW_LINE;
+
+	part.previous_parts = array(3);
+	part.previous_parts[0] = SN_S_DIAGONAL;
+	part.previous_parts[1] = EN_BEND;
+	part.previous_parts[2] = SN_LINE;
+
+	part.points = array(6);
+	part.points[0] = AIMap.GetTileIndex(-1, 0);
+	part.points[1] = AIMap.GetTileIndex(-1, 1);
+	part.points[2] = AIMap.GetTileIndex(-1, 2);
+	part.points[3] = AIMap.GetTileIndex(0, 1);
+	part.points[4] = AIMap.GetTileIndex(0, 0);
+	part.points[5] = AIMap.GetTileIndex(1, 0);
+
+	part.signal_senses = array(4);
+	part.signal_senses[0] = RailroadCommon.CLOCKWISE;
+	part.signal_senses[1] = RailroadCommon.INVALID_SENSE;
+	part.signal_senses[2] = RailroadCommon.COUNTERCLOCKWISE;
+	part.signal_senses[3] = RailroadCommon.COUNTERCLOCKWISE;
+
+	part.junctions = array(1);
+	part.junctions[0] = Junction(AIMap.GetTileIndex(1, 1), J_EW_RECTANGLE);
+
+	part.depots = array(2);
+	part.depots[1] = Depot(AIMap.GetTileIndex(-1, 1), SW_BOOMERANG);
+
+	part.parts_keep_direction = array(22);
+	for(local i = 0 ; i < 22 ; i++)
+		part.parts_keep_direction[i] = false;
+	part.parts_keep_direction[EW_S_DIAGONAL] = true;
+	part.parts_keep_direction[EN_BEND] = true;
+
+	/* WS_BEND */
+	part = parts[WS_BEND];
+	part.next_tile = AIMap.GetTileIndex(1, -1);
+	part.sections = array(4);
+	part.sections[0] = Section(
+		AIMap.GetTileIndex(0, -1), AIRail.RAILTRACK_NW_NE);
+	part.sections[1] = Section(
+		AIMap.GetTileIndex(0, -1), AIRail.RAILTRACK_SW_SE);
+	part.sections[2] = Section(
+		AIMap.GetTileIndex(0, 0), AIRail.RAILTRACK_NW_NE);
+	part.sections[3] = Section(
+		AIMap.GetTileIndex(1, -1), AIRail.RAILTRACK_NW_NE);
+
+	part.continuation_parts = array(3);
+	part.continuation_parts[0] = NS_S_DIAGONAL;
+	part.continuation_parts[1] = NE_BEND;
+	part.continuation_parts[2] = NS_LINE;
+
+	part.previous_parts = array(3);
+	part.previous_parts[0] = WE_S_DIAGONAL;
+	part.previous_parts[1] = NE_BEND;
+	part.previous_parts[2] = WE_LINE;
+
+	part.points = array(6);
+	part.points[0] = AIMap.GetTileIndex(0, -1);
+	part.points[1] = AIMap.GetTileIndex(1, -1);
+	part.points[2] = AIMap.GetTileIndex(2, -1);
+	part.points[3] = AIMap.GetTileIndex(1, 0);
+	part.points[4] = AIMap.GetTileIndex(0, 0);
+	part.points[5] = AIMap.GetTileIndex(0, 1);
+
+	part.signal_senses = array(4);
+	part.signal_senses[0] = RailroadCommon.CLOCKWISE;
+	part.signal_senses[1] = RailroadCommon.INVALID_SENSE;
+	part.signal_senses[2] = RailroadCommon.COUNTERCLOCKWISE;
+	part.signal_senses[3] = RailroadCommon.COUNTERCLOCKWISE;
+
+	part.junctions = array(1);
+	part.junctions[0] = Junction(AIMap.GetTileIndex(0, -1), J_NS_RECTANGLE);
+
+	part.depots = array(2);
+	part.depots[0] = Depot(AIMap.GetTileIndex(0, 0), SW_BOOMERANG);
+
+	part.parts_keep_direction = array(22);
+	for(local i = 0 ; i < 22 ; i++)
+		part.parts_keep_direction[i] = false;
+	part.parts_keep_direction[NS_S_DIAGONAL] = true;
+	part.parts_keep_direction[NE_BEND] = true;
+
+	/* SE_BEND */
+	part = parts[SE_BEND];
+	part.next_tile = AIMap.GetTileIndex(1, 1);
+	part.sections = array(4);
+	part.sections[0] = Section(
+		AIMap.GetTileIndex(0, 0), AIRail.RAILTRACK_NE_SE);
+	part.sections[1] = Section(
+		AIMap.GetTileIndex(0, 0), AIRail.RAILTRACK_NW_SW);
+	part.sections[2] = Section(
+		AIMap.GetTileIndex(-1, 0), AIRail.RAILTRACK_NW_SW);
+	part.sections[3] = Section(
+		AIMap.GetTileIndex(0, 1), AIRail.RAILTRACK_NW_SW);
+
+	part.continuation_parts = array(3);
+	part.continuation_parts[0] = WE_P_DIAGONAL;
+	part.continuation_parts[1] = WN_BEND;
+	part.continuation_parts[2] = WE_LINE;
+
+	part.previous_parts = array(3);
+	part.previous_parts[0] = SN_P_DIAGONAL;
+	part.previous_parts[1] = WN_BEND;
+	part.previous_parts[2] = SN_LINE;
+
+	part.points = array(6);
+	part.points[0] = AIMap.GetTileIndex(1, 0);
+	part.points[1] = AIMap.GetTileIndex(1, 1);
+	part.points[2] = AIMap.GetTileIndex(1, 2);
+	part.points[3] = AIMap.GetTileIndex(0, 1);
+	part.points[4] = AIMap.GetTileIndex(0, 0);
+	part.points[5] = AIMap.GetTileIndex(-1, 0);
+
+	part.signal_senses = array(4);
+	part.signal_senses[0] = RailroadCommon.INVALID_SENSE;
+	part.signal_senses[1] = RailroadCommon.COUNTERCLOCKWISE;
+	part.signal_senses[2] = RailroadCommon.CLOCKWISE;
+	part.signal_senses[3] = RailroadCommon.CLOCKWISE;
+
+	part.junctions = array(1);
+	part.junctions[0] = Junction(AIMap.GetTileIndex(0, 0), J_WE_RECTANGLE);
+
+	part.depots = array(2);
+	part.depots[0] = Depot(AIMap.GetTileIndex(0, 1), SE_BOOMERANG);
+
+	part.parts_keep_direction = array(22);
+	for(local i = 0 ; i < 22 ; i++)
+		part.parts_keep_direction[i] = false;
+	part.parts_keep_direction[WE_P_DIAGONAL] = true;
+	part.parts_keep_direction[WN_BEND] = true;
+
+	/* ES_BEND */
+	part = parts[ES_BEND];
+	part.next_tile = AIMap.GetTileIndex(-1, -1);
+	part.sections = array(4);
+	part.sections[0] = Section(
+		AIMap.GetTileIndex(-1, -1), AIRail.RAILTRACK_NE_SE);
+	part.sections[1] = Section(
+		AIMap.GetTileIndex(-1, -1), AIRail.RAILTRACK_NW_SW);
+	part.sections[2] = Section(
+		AIMap.GetTileIndex(-1, 0), AIRail.RAILTRACK_NW_SW);
+	part.sections[3] = Section(
+		AIMap.GetTileIndex(-2, -1), AIRail.RAILTRACK_NW_SW);
+
+	part.continuation_parts = array(3);
+	part.continuation_parts[0] = NS_P_DIAGONAL;
+	part.continuation_parts[1] = NW_BEND;
+	part.continuation_parts[2] = NS_LINE;
+
+	part.previous_parts = array(3);
+	part.previous_parts[0] = EW_P_DIAGONAL;
+	part.previous_parts[1] = NW_BEND;
+	part.previous_parts[2] = EW_LINE;
+
+	part.points = array(6);
+	part.points[0] = AIMap.GetTileIndex(0, -1);
+	part.points[1] = AIMap.GetTileIndex(-1, -1);
+	part.points[2] = AIMap.GetTileIndex(-2, -1);
+	part.points[3] = AIMap.GetTileIndex(-1, 0);
+	part.points[4] = AIMap.GetTileIndex(0, 0);
+	part.points[5] = AIMap.GetTileIndex(0, 1);
+
+	part.signal_senses = array(4);
+	part.signal_senses[0] = RailroadCommon.INVALID_SENSE;
+	part.signal_senses[1] = RailroadCommon.COUNTERCLOCKWISE;
+	part.signal_senses[2] = RailroadCommon.CLOCKWISE;
+	part.signal_senses[3] = RailroadCommon.CLOCKWISE;
+
+	part.junctions = array(1);
+	part.junctions[0] = Junction(AIMap.GetTileIndex(-2, -1), J_NS_RECTANGLE);
+
+	part.depots = array(2);
+	part.depots[1] = Depot(AIMap.GetTileIndex(-1, 0), SE_BOOMERANG);
+
+	part.parts_keep_direction = array(22);
+	for(local i = 0 ; i < 22 ; i++)
+		part.parts_keep_direction[i] = false;
+	part.parts_keep_direction[NS_P_DIAGONAL] = true;
+	part.parts_keep_direction[NW_BEND] = true;
+}
+
+function DoubleTrackParts::InitializeJunctions(parts){
+	local i, part;
 
 	/* J_EW_RECTANGLE */
 	part = parts[J_EW_RECTANGLE];
@@ -1172,1012 +2022,185 @@ function DoubleTrackParts::Initialize(){
 	part.points[12] = AIMap.GetTileIndex(-4, -1);
 	part.points[13] = AIMap.GetTileIndex(-4, 0);
 	part.points[14] = AIMap.GetTileIndex(-4, 1);
+}
 
-	/* Bends: */
+function DoubleTrackParts::InitializeDepotParts(parts){
+	local i, part;
 
-	/* NE_BEND */
-	part = parts[NE_BEND];
-	part.next_tile = AIMap.GetTileIndex(1, -1);
-	part.sections = array(4);
-	part.sections[0] = Section(
-		AIMap.GetTileIndex(0, -1), AIRail.RAILTRACK_SW_SE);
-	part.sections[1] = Section(
-		AIMap.GetTileIndex(0, -1), AIRail.RAILTRACK_NW_NE);
-	part.sections[2] = Section(
-		AIMap.GetTileIndex(0, -2), AIRail.RAILTRACK_SW_SE);
-	part.sections[3] = Section(
-		AIMap.GetTileIndex(-1, -1), AIRail.RAILTRACK_SW_SE);
+	/* NEW_V */
+	part = parts[NEW_V];
 
-	part.continuation_parts = array(3);
-	part.continuation_parts[0] = WE_S_DIAGONAL;
-	part.continuation_parts[1] = WS_BEND;
-	part.continuation_parts[2] = WE_LINE;
-
-	part.previous_parts = array(3);
-	part.previous_parts[0] = NS_S_DIAGONAL;
-	part.previous_parts[1] = WS_BEND;
-	part.previous_parts[2] = NS_LINE;
-
-	part.points = array(6);
-	part.points[0] = AIMap.GetTileIndex(1, 0);
-	part.points[1] = AIMap.GetTileIndex(1, -1);
-	part.points[2] = AIMap.GetTileIndex(1, -2);
-	part.points[3] = AIMap.GetTileIndex(0, -1);
-	part.points[4] = AIMap.GetTileIndex(0, 0);
-	part.points[5] = AIMap.GetTileIndex(-1, 0);
-
-	part.signal_senses = array(4);
-	part.signal_senses[0] = RailroadCommon.COUNTERCLOCKWISE;
-	part.signal_senses[1] = RailroadCommon.INVALID_SENSE;
-	part.signal_senses[2] = RailroadCommon.CLOCKWISE;
-	part.signal_senses[3] = RailroadCommon.CLOCKWISE;
-
-	part.junctions = array(1);
-	part.junctions[0] = Junction(AIMap.GetTileIndex(0, -2), J_WE_RECTANGLE);
-
-	part.depots = array(2);
-	part.depots[1] = Depot(AIMap.GetTileIndex(-1, -1), EN_BOOMERANG);
-
-	part.parts_keep_direction = array(22);
-	for(local i = 0 ; i < 22 ; i++)
-		part.parts_keep_direction[i] = false;
-	part.parts_keep_direction[WE_S_DIAGONAL] = true;
-	part.parts_keep_direction[WS_BEND] = true;
-
-	/* EN_BEND */
-	part = parts[EN_BEND];
-	part.next_tile = AIMap.GetTileIndex(-1, 1);
-	part.sections = array(4);
-	part.sections[0] = Section(
-		AIMap.GetTileIndex(-1, 0), AIRail.RAILTRACK_SW_SE);
-	part.sections[1] = Section(
-		AIMap.GetTileIndex(-1, 0), AIRail.RAILTRACK_NW_NE);
-	part.sections[2] = Section(
-		AIMap.GetTileIndex(-1, -1), AIRail.RAILTRACK_SW_SE);
-	part.sections[3] = Section(
-		AIMap.GetTileIndex(-2, 0), AIRail.RAILTRACK_SW_SE);
-
-	part.continuation_parts = array(3);
-	part.continuation_parts[0] = SN_S_DIAGONAL;
-	part.continuation_parts[1] = SW_BEND;
-	part.continuation_parts[2] = SN_LINE;
-
-	part.previous_parts = array(3);
-	part.previous_parts[0] = EW_S_DIAGONAL;
-	part.previous_parts[1] = SW_BEND;
-	part.previous_parts[2] = EW_LINE;
-
-	part.points = array(6);
-	part.points[0] = AIMap.GetTileIndex(0, 1);
-	part.points[1] = AIMap.GetTileIndex(-1, 1);
-	part.points[2] = AIMap.GetTileIndex(-2, 1);
-	part.points[3] = AIMap.GetTileIndex(-1, 0);
-	part.points[4] = AIMap.GetTileIndex(0, 0);
-	part.points[5] = AIMap.GetTileIndex(0, -1);
-
-	part.signal_senses = array(4);
-	part.signal_senses[0] = RailroadCommon.COUNTERCLOCKWISE;
-	part.signal_senses[1] = RailroadCommon.INVALID_SENSE;
-	part.signal_senses[2] = RailroadCommon.CLOCKWISE;
-	part.signal_senses[3] = RailroadCommon.CLOCKWISE;
-
-	part.junctions = array(1);
-	part.junctions[0] = Junction(AIMap.GetTileIndex(-1, -2), J_SN_RECTANGLE);
-
-	part.depots = array(2);
-	part.depots[0] = Depot(AIMap.GetTileIndex(-2, 0), EN_BOOMERANG);
-
-	part.parts_keep_direction = array(22);
-	for(local i = 0 ; i < 22 ; i++)
-		part.parts_keep_direction[i] = false;
-	part.parts_keep_direction[SN_S_DIAGONAL] = true;
-	part.parts_keep_direction[SW_BEND] = true;
-
-	/* WN_BEND */
-	part = parts[WN_BEND];
-	part.next_tile = AIMap.GetTileIndex(1, 1);
-	part.sections = array(4);
-	part.sections[0] = Section(
-		AIMap.GetTileIndex(0, 0), AIRail.RAILTRACK_NW_SW);
-	part.sections[1] = Section(
+	part.depot_positions = array(1);
+	part.depot_positions[0] = DepotPosition();
+	part.depot_positions[0].sections = array(2);
+	part.depot_positions[0].sections[0] = Section(
+		AIMap.GetTileIndex(0, 0), AIRail.RAILTRACK_SW_SE);
+	part.depot_positions[0].sections[1] = Section(
 		AIMap.GetTileIndex(0, 0), AIRail.RAILTRACK_NE_SE);
-	part.sections[2] = Section(
-		AIMap.GetTileIndex(1, 0), AIRail.RAILTRACK_NE_SE);
-	part.sections[3] = Section(
-		AIMap.GetTileIndex(0, -1), AIRail.RAILTRACK_NE_SE);
+	part.depot_positions[0].offset = AIMap.GetTileIndex(0, 1);
 
-	part.continuation_parts = array(3);
-	part.continuation_parts[0] = SN_P_DIAGONAL;
-	part.continuation_parts[1] = SE_BEND;
-	part.continuation_parts[2] = SN_LINE;
+	/* SWE_V */
+	part = parts[SWE_V];
 
-	part.previous_parts = array(3);
-	part.previous_parts[0] = WE_P_DIAGONAL;
-	part.previous_parts[1] = SE_BEND;
-	part.previous_parts[2] = WE_LINE;
-
-	part.points = array(6);
-	part.points[0] = AIMap.GetTileIndex(0, 1);
-	part.points[1] = AIMap.GetTileIndex(1, 1);
-	part.points[2] = AIMap.GetTileIndex(2, 1);
-	part.points[3] = AIMap.GetTileIndex(1, 0);
-	part.points[4] = AIMap.GetTileIndex(0, 0);
-	part.points[5] = AIMap.GetTileIndex(0, -1);
-
-	part.signal_senses = array(4);
-	part.signal_senses[0] = RailroadCommon.INVALID_SENSE;
-	part.signal_senses[1] = RailroadCommon.COUNTERCLOCKWISE;
-	part.signal_senses[2] = RailroadCommon.CLOCKWISE;
-	part.signal_senses[3] = RailroadCommon.CLOCKWISE;
-
-	part.junctions = array(1);
-	part.junctions[0] = Junction(AIMap.GetTileIndex(1, -2), J_SN_RECTANGLE);
-
-	part.depots = array(2);
-	part.depots[1] = Depot(AIMap.GetTileIndex(1, 0), WN_BOOMERANG);
-
-	part.parts_keep_direction = array(22);
-	for(local i = 0 ; i < 22 ; i++)
-		part.parts_keep_direction[i] = false;
-	part.parts_keep_direction[SN_P_DIAGONAL] = true;
-	part.parts_keep_direction[SE_BEND] = true;
-
-	/* NW_BEND */
-	part = parts[NW_BEND];
-	part.next_tile = AIMap.GetTileIndex(-1, -1);
-	part.sections = array(4);
-	part.sections[0] = Section(
-		AIMap.GetTileIndex(-1, -1), AIRail.RAILTRACK_NE_SE);
-	part.sections[1] = Section(
-		AIMap.GetTileIndex(-1, -1), AIRail.RAILTRACK_NW_SW);
-	part.sections[2] = Section(
-		AIMap.GetTileIndex(0, -1), AIRail.RAILTRACK_NE_SE);
-	part.sections[3] = Section(
-		AIMap.GetTileIndex(-1, -2), AIRail.RAILTRACK_NE_SE);
-
-	part.continuation_parts = array(3);
-	part.continuation_parts[0] = EW_P_DIAGONAL;
-	part.continuation_parts[1] = ES_BEND;
-	part.continuation_parts[2] = EW_LINE;
-
-	part.previous_parts = array(3);
-	part.previous_parts[0] = NS_P_DIAGONAL;
-	part.previous_parts[1] = ES_BEND;
-	part.previous_parts[2] = NS_LINE;
-
-	part.points = array(6);
-	part.points[0] = AIMap.GetTileIndex(-1, 0);
-	part.points[1] = AIMap.GetTileIndex(-1, -1);
-	part.points[2] = AIMap.GetTileIndex(-1, -2);
-	part.points[3] = AIMap.GetTileIndex(0, -1);
-	part.points[4] = AIMap.GetTileIndex(0, 0);
-	part.points[5] = AIMap.GetTileIndex(1, 0);
-
-	part.signal_senses = array(4);
-	part.signal_senses[0] = RailroadCommon.COUNTERCLOCKWISE;
-	part.signal_senses[1] = RailroadCommon.INVALID_SENSE;
-	part.signal_senses[2] = RailroadCommon.CLOCKWISE;
-	part.signal_senses[3] = RailroadCommon.CLOCKWISE;
-
-	part.junctions = array(1);
-	part.junctions[0] = Junction(AIMap.GetTileIndex(1, -1), J_EW_RECTANGLE);
-
-	part.depots = array(2);
-	part.depots[0] = Depot(AIMap.GetTileIndex(0, -1), WN_BOOMERANG);
-
-	part.parts_keep_direction = array(22);
-	for(local i = 0 ; i < 22 ; i++)
-		part.parts_keep_direction[i] = false;
-	part.parts_keep_direction[EW_P_DIAGONAL] = true;
-	part.parts_keep_direction[ES_BEND] = true;
-
-	/* SW_BEND */
-	part = parts[SW_BEND];
-	part.next_tile = AIMap.GetTileIndex(-1, 1);
-	part.sections = array(4);
-	part.sections[0] = Section(
-		AIMap.GetTileIndex(-1, 0), AIRail.RAILTRACK_NW_NE);
-	part.sections[1] = Section(
-		AIMap.GetTileIndex(-1, 0), AIRail.RAILTRACK_SW_SE);
-	part.sections[2] = Section(
+	part.depot_positions = array(1);
+	part.depot_positions[0] = DepotPosition();
+	part.depot_positions[0].sections = array(2);
+	part.depot_positions[0].sections[0] = Section(
 		AIMap.GetTileIndex(0, 0), AIRail.RAILTRACK_NW_NE);
-	part.sections[3] = Section(
-		AIMap.GetTileIndex(-1, 1), AIRail.RAILTRACK_NW_NE);
-
-	part.continuation_parts = array(3);
-	part.continuation_parts[0] = EW_S_DIAGONAL;
-	part.continuation_parts[1] = EN_BEND;
-	part.continuation_parts[2] = EW_LINE;
-
-	part.previous_parts = array(3);
-	part.previous_parts[0] = SN_S_DIAGONAL;
-	part.previous_parts[1] = EN_BEND;
-	part.previous_parts[2] = SN_LINE;
-
-	part.points = array(6);
-	part.points[0] = AIMap.GetTileIndex(-1, 0);
-	part.points[1] = AIMap.GetTileIndex(-1, 1);
-	part.points[2] = AIMap.GetTileIndex(-1, 2);
-	part.points[3] = AIMap.GetTileIndex(0, 1);
-	part.points[4] = AIMap.GetTileIndex(0, 0);
-	part.points[5] = AIMap.GetTileIndex(1, 0);
-
-	part.signal_senses = array(4);
-	part.signal_senses[0] = RailroadCommon.CLOCKWISE;
-	part.signal_senses[1] = RailroadCommon.INVALID_SENSE;
-	part.signal_senses[2] = RailroadCommon.COUNTERCLOCKWISE;
-	part.signal_senses[3] = RailroadCommon.COUNTERCLOCKWISE;
-
-	part.junctions = array(1);
-	part.junctions[0] = Junction(AIMap.GetTileIndex(1, 1), J_EW_RECTANGLE);
-
-	part.depots = array(2);
-	part.depots[1] = Depot(AIMap.GetTileIndex(-1, 1), SW_BOOMERANG);
-
-	part.parts_keep_direction = array(22);
-	for(local i = 0 ; i < 22 ; i++)
-		part.parts_keep_direction[i] = false;
-	part.parts_keep_direction[EW_S_DIAGONAL] = true;
-	part.parts_keep_direction[EN_BEND] = true;
-
-	/* WS_BEND */
-	part = parts[WS_BEND];
-	part.next_tile = AIMap.GetTileIndex(1, -1);
-	part.sections = array(4);
-	part.sections[0] = Section(
-		AIMap.GetTileIndex(0, -1), AIRail.RAILTRACK_NW_NE);
-	part.sections[1] = Section(
-		AIMap.GetTileIndex(0, -1), AIRail.RAILTRACK_SW_SE);
-	part.sections[2] = Section(
-		AIMap.GetTileIndex(0, 0), AIRail.RAILTRACK_NW_NE);
-	part.sections[3] = Section(
-		AIMap.GetTileIndex(1, -1), AIRail.RAILTRACK_NW_NE);
-
-	part.continuation_parts = array(3);
-	part.continuation_parts[0] = NS_S_DIAGONAL;
-	part.continuation_parts[1] = NE_BEND;
-	part.continuation_parts[2] = NS_LINE;
-
-	part.previous_parts = array(3);
-	part.previous_parts[0] = WE_S_DIAGONAL;
-	part.previous_parts[1] = NE_BEND;
-	part.previous_parts[2] = WE_LINE;
-
-	part.points = array(6);
-	part.points[0] = AIMap.GetTileIndex(0, -1);
-	part.points[1] = AIMap.GetTileIndex(1, -1);
-	part.points[2] = AIMap.GetTileIndex(2, -1);
-	part.points[3] = AIMap.GetTileIndex(1, 0);
-	part.points[4] = AIMap.GetTileIndex(0, 0);
-	part.points[5] = AIMap.GetTileIndex(0, 1);
-
-	part.signal_senses = array(4);
-	part.signal_senses[0] = RailroadCommon.CLOCKWISE;
-	part.signal_senses[1] = RailroadCommon.INVALID_SENSE;
-	part.signal_senses[2] = RailroadCommon.COUNTERCLOCKWISE;
-	part.signal_senses[3] = RailroadCommon.COUNTERCLOCKWISE;
-
-	part.junctions = array(1);
-	part.junctions[0] = Junction(AIMap.GetTileIndex(0, -1), J_NS_RECTANGLE);
-
-	part.depots = array(2);
-	part.depots[0] = Depot(AIMap.GetTileIndex(0, 0), SW_BOOMERANG);
-
-	part.parts_keep_direction = array(22);
-	for(local i = 0 ; i < 22 ; i++)
-		part.parts_keep_direction[i] = false;
-	part.parts_keep_direction[NS_S_DIAGONAL] = true;
-	part.parts_keep_direction[NE_BEND] = true;
-
-	/* SE_BEND */
-	part = parts[SE_BEND];
-	part.next_tile = AIMap.GetTileIndex(1, 1);
-	part.sections = array(4);
-	part.sections[0] = Section(
-		AIMap.GetTileIndex(0, 0), AIRail.RAILTRACK_NE_SE);
-	part.sections[1] = Section(
+	part.depot_positions[0].sections[1] = Section(
 		AIMap.GetTileIndex(0, 0), AIRail.RAILTRACK_NW_SW);
-	part.sections[2] = Section(
-		AIMap.GetTileIndex(-1, 0), AIRail.RAILTRACK_NW_SW);
-	part.sections[3] = Section(
-		AIMap.GetTileIndex(0, 1), AIRail.RAILTRACK_NW_SW);
+	part.depot_positions[0].offset = AIMap.GetTileIndex(0, -1);
 
-	part.continuation_parts = array(3);
-	part.continuation_parts[0] = WE_P_DIAGONAL;
-	part.continuation_parts[1] = WN_BEND;
-	part.continuation_parts[2] = WE_LINE;
+	/* SEN_V */
+	part = parts[SEN_V];
 
-	part.previous_parts = array(3);
-	part.previous_parts[0] = SN_P_DIAGONAL;
-	part.previous_parts[1] = WN_BEND;
-	part.previous_parts[2] = SN_LINE;
+	part.depot_positions = array(1);
+	part.depot_positions[0] = DepotPosition();
+	part.depot_positions[0].sections = array(2);
+	part.depot_positions[0].sections[0] = Section(
+		AIMap.GetTileIndex(0, 0), AIRail.RAILTRACK_SW_SE);
+	part.depot_positions[0].sections[1] = Section(
+		AIMap.GetTileIndex(0, 0), AIRail.RAILTRACK_NW_SW);
+	part.depot_positions[0].offset = AIMap.GetTileIndex(1, 0);
 
-	part.points = array(6);
-	part.points[0] = AIMap.GetTileIndex(1, 0);
-	part.points[1] = AIMap.GetTileIndex(1, 1);
-	part.points[2] = AIMap.GetTileIndex(1, 2);
-	part.points[3] = AIMap.GetTileIndex(0, 1);
-	part.points[4] = AIMap.GetTileIndex(0, 0);
-	part.points[5] = AIMap.GetTileIndex(-1, 0);
+	/* NWS_V */
+	part = parts[NWS_V];
 
-	part.signal_senses = array(4);
-	part.signal_senses[0] = RailroadCommon.INVALID_SENSE;
-	part.signal_senses[1] = RailroadCommon.COUNTERCLOCKWISE;
-	part.signal_senses[2] = RailroadCommon.CLOCKWISE;
-	part.signal_senses[3] = RailroadCommon.CLOCKWISE;
+	part.depot_positions = array(1);
+	part.depot_positions[0] = DepotPosition();
+	part.depot_positions[0].sections = array(2);
+	part.depot_positions[0].sections[0] = Section(
+		AIMap.GetTileIndex(0, 0), AIRail.RAILTRACK_NW_NE);
+	part.depot_positions[0].sections[1] = Section(
+		AIMap.GetTileIndex(0, 0), AIRail.RAILTRACK_NE_SE);
+	part.depot_positions[0].offset = AIMap.GetTileIndex(-1, 0);
 
-	part.junctions = array(1);
-	part.junctions[0] = Junction(AIMap.GetTileIndex(0, 0), J_WE_RECTANGLE);
-
-	part.depots = array(2);
-	part.depots[0] = Depot(AIMap.GetTileIndex(0, 1), SE_BOOMERANG);
-
-	part.parts_keep_direction = array(22);
-	for(local i = 0 ; i < 22 ; i++)
-		part.parts_keep_direction[i] = false;
-	part.parts_keep_direction[WE_P_DIAGONAL] = true;
-	part.parts_keep_direction[WN_BEND] = true;
-
-	/* ES_BEND */
-	part = parts[ES_BEND];
-	part.next_tile = AIMap.GetTileIndex(-1, -1);
-	part.sections = array(4);
-	part.sections[0] = Section(
-		AIMap.GetTileIndex(-1, -1), AIRail.RAILTRACK_NE_SE);
-	part.sections[1] = Section(
-		AIMap.GetTileIndex(-1, -1), AIRail.RAILTRACK_NW_SW);
-	part.sections[2] = Section(
-		AIMap.GetTileIndex(-1, 0), AIRail.RAILTRACK_NW_SW);
-	part.sections[3] = Section(
-		AIMap.GetTileIndex(-2, -1), AIRail.RAILTRACK_NW_SW);
-
-	part.continuation_parts = array(3);
-	part.continuation_parts[0] = NS_P_DIAGONAL;
-	part.continuation_parts[1] = NW_BEND;
-	part.continuation_parts[2] = NS_LINE;
-
-	part.previous_parts = array(3);
-	part.previous_parts[0] = EW_P_DIAGONAL;
-	part.previous_parts[1] = NW_BEND;
-	part.previous_parts[2] = EW_LINE;
-
-	part.points = array(6);
-	part.points[0] = AIMap.GetTileIndex(0, -1);
-	part.points[1] = AIMap.GetTileIndex(-1, -1);
-	part.points[2] = AIMap.GetTileIndex(-2, -1);
-	part.points[3] = AIMap.GetTileIndex(-1, 0);
-	part.points[4] = AIMap.GetTileIndex(0, 0);
-	part.points[5] = AIMap.GetTileIndex(0, 1);
-
-	part.signal_senses = array(4);
-	part.signal_senses[0] = RailroadCommon.INVALID_SENSE;
-	part.signal_senses[1] = RailroadCommon.COUNTERCLOCKWISE;
-	part.signal_senses[2] = RailroadCommon.CLOCKWISE;
-	part.signal_senses[3] = RailroadCommon.CLOCKWISE;
-
-	part.junctions = array(1);
-	part.junctions[0] = Junction(AIMap.GetTileIndex(-2, -1), J_NS_RECTANGLE);
-
-	part.depots = array(2);
-	part.depots[1] = Depot(AIMap.GetTileIndex(-1, 0), SE_BOOMERANG);
-
-	part.parts_keep_direction = array(22);
-	for(local i = 0 ; i < 22 ; i++)
-		part.parts_keep_direction[i] = false;
-	part.parts_keep_direction[NS_P_DIAGONAL] = true;
-	part.parts_keep_direction[NW_BEND] = true;
-
-	/* Lines: */
-
-	/* WE_LINE */
-	part = parts[WE_LINE];
-	part.next_tile = AIMap.GetTileIndex(1, 0);
-	part.sections = array(2);
-	part.sections[0] = Section(
-		AIMap.GetTileIndex(0, 0), AIRail.RAILTRACK_NE_SW);
-	part.sections[1] = Section(
-		AIMap.GetTileIndex(0, -1), AIRail.RAILTRACK_NE_SW);
-
-	part.continuation_parts = array(5);
-	part.continuation_parts[0] = WE_LINE;
-	part.continuation_parts[1] = WE_P_DIAGONAL;
-	part.continuation_parts[2] = WE_S_DIAGONAL;
-	part.continuation_parts[3] = WN_BEND;
-	part.continuation_parts[4] = WS_BEND;
-
-	part.previous_parts = array(5);
-	part.previous_parts[0] = WE_LINE;
-	part.previous_parts[1] = WE_P_DIAGONAL;
-	part.previous_parts[2] = WE_S_DIAGONAL;
-	part.previous_parts[3] = SE_BEND;
-	part.previous_parts[4] = NE_BEND;
-
-	part.points = array(6);
-	part.points[0] = AIMap.GetTileIndex(1, 1);
-	part.points[1] = AIMap.GetTileIndex(1, 0);
-	part.points[2] = AIMap.GetTileIndex(1, -1);
-	part.points[3] = AIMap.GetTileIndex(0, 1);
-	part.points[4] = AIMap.GetTileIndex(0, 0);
-	part.points[5] = AIMap.GetTileIndex(0, -1);
-
-	part.signal_senses = array(2);
-	part.signal_senses[0] = RailroadCommon.COUNTERCLOCKWISE;
-	part.signal_senses[1] = RailroadCommon.CLOCKWISE;
-
-	part.junctions = array(2);
-	part.junctions[0] = Junction(AIMap.GetTileIndex(0, -1), J_NE_HOOK);
-	part.junctions[1] = Junction(AIMap.GetTileIndex(0, 0), J_SE_HOOK);
-
-	part.depots = array(2);
-	part.depots[0] = Depot(AIMap.GetTileIndex(0, 0), NEW_V);
-	part.depots[1] = Depot(AIMap.GetTileIndex(0, -1), SWE_V);
-
-	part.parts_keep_direction = array(22);
-	for(local i = 0 ; i < 22 ; i++)
-		part.parts_keep_direction[i] = false;
-	part.parts_keep_direction[WE_LINE] = true;
-	part.parts_keep_direction[TUNNEL] = true;
-	part.parts_keep_direction[BRIDGE] = true;
-
-	/* EW_LINE */
-	part = parts[EW_LINE];
-	part.next_tile = AIMap.GetTileIndex(-1, 0);
-	part.sections = array(2);
-	part.sections[0] = Section(
-		AIMap.GetTileIndex(-1, 0), AIRail.RAILTRACK_NE_SW);
-	part.sections[1] = Section(
-		AIMap.GetTileIndex(-1, -1), AIRail.RAILTRACK_NE_SW);
-
-	part.continuation_parts = array(5);
-	part.continuation_parts[0] = EW_LINE;
-	part.continuation_parts[1] = EW_P_DIAGONAL;
-	part.continuation_parts[2] = EW_S_DIAGONAL;
-	part.continuation_parts[3] = EN_BEND;
-	part.continuation_parts[4] = ES_BEND;
-
-	part.previous_parts = array(5);
-	part.previous_parts[0] = EW_LINE;
-	part.previous_parts[1] = EW_P_DIAGONAL;
-	part.previous_parts[2] = EW_S_DIAGONAL;
-	part.previous_parts[3] = NW_BEND;
-	part.previous_parts[4] = SW_BEND;
-
-	part.points = array(6);
-	part.points[0] = AIMap.GetTileIndex(-1, -1);
-	part.points[1] = AIMap.GetTileIndex(-1, 0);
-	part.points[2] = AIMap.GetTileIndex(-1, 1);
-	part.points[3] = AIMap.GetTileIndex(0, -1);
-	part.points[4] = AIMap.GetTileIndex(0, 0);
-	part.points[5] = AIMap.GetTileIndex(0, 1);
-
-	part.signal_senses = array(2);
-	part.signal_senses[0] = RailroadCommon.COUNTERCLOCKWISE;
-	part.signal_senses[1] = RailroadCommon.CLOCKWISE;
-
-	part.junctions = array(2);
-	part.junctions[0] = Junction(AIMap.GetTileIndex(-1, -1), J_NW_HOOK);
-	part.junctions[1] = Junction(AIMap.GetTileIndex(-1, 0), J_SW_HOOK);
-
-	part.depots = array(2);
-	part.depots[0] = Depot(AIMap.GetTileIndex(-1, -1), SWE_V);
-	part.depots[1] = Depot(AIMap.GetTileIndex(-1, 0), NEW_V);
-
-	part.parts_keep_direction = array(22);
-	for(local i = 0 ; i < 22 ; i++)
-		part.parts_keep_direction[i] = false;
-	part.parts_keep_direction[EW_LINE] = true;
-	part.parts_keep_direction[TUNNEL] = true;
-	part.parts_keep_direction[BRIDGE] = true;
-
-	/* SN_LINE */
-	part = parts[SN_LINE];
-	part.next_tile = AIMap.GetTileIndex(0, 1);
-	part.sections = array(2);
+	/* EN_BOOMERANG */
+	part = parts[EN_BOOMERANG];
+	part.sections = array(3);
 	part.sections[0] = Section(
 		AIMap.GetTileIndex(0, 0), AIRail.RAILTRACK_NW_SE);
 	part.sections[1] = Section(
-		AIMap.GetTileIndex(-1, 0), AIRail.RAILTRACK_NW_SE);
+		AIMap.GetTileIndex(0, -1), AIRail.RAILTRACK_SW_SE);
+	part.sections[2] = Section(
+		AIMap.GetTileIndex(1, -1), AIRail.RAILTRACK_NE_SW);
 
-	part.continuation_parts = array(5);
-	part.continuation_parts[0] = SN_LINE;
-	part.continuation_parts[1] = SN_P_DIAGONAL;
-	part.continuation_parts[2] = SN_S_DIAGONAL;
-	part.continuation_parts[3] = SE_BEND;
-	part.continuation_parts[4] = SW_BEND;
-
-	part.previous_parts = array(5);
-	part.previous_parts[0] = SN_LINE;
-	part.previous_parts[1] = SN_P_DIAGONAL;
-	part.previous_parts[2] = SN_S_DIAGONAL;
-	part.previous_parts[3] = WN_BEND;
-	part.previous_parts[4] = EN_BEND;
-
-	part.points = array(6);
-	part.points[0] = AIMap.GetTileIndex(-1, 1);
-	part.points[1] = AIMap.GetTileIndex(0, 1);
-	part.points[2] = AIMap.GetTileIndex(1, 1);
-	part.points[3] = AIMap.GetTileIndex(-1, 0);
-	part.points[4] = AIMap.GetTileIndex(0, 0);
-	part.points[5] = AIMap.GetTileIndex(1, 0);
-
-	part.signal_senses = array(2);
-	part.signal_senses[0] = RailroadCommon.COUNTERCLOCKWISE;
-	part.signal_senses[1] = RailroadCommon.CLOCKWISE;
-
-	part.junctions = array(2);
-	part.junctions[0] = Junction(AIMap.GetTileIndex(0, 0), J_WN_HOOK);
-	part.junctions[1] = Junction(AIMap.GetTileIndex(-1, 0), J_EN_HOOK);
-
-	part.depots = array(2);
-	part.depots[0] = Depot(AIMap.GetTileIndex(-1, 0), NWS_V);
-	part.depots[1] = Depot(AIMap.GetTileIndex(0, 0), SEN_V);
-
-	part.parts_keep_direction = array(22);
-	for(local i = 0 ; i < 22 ; i++)
-		part.parts_keep_direction[i] = false;
-	part.parts_keep_direction[SN_LINE] = true;
-	part.parts_keep_direction[TUNNEL] = true;
-	part.parts_keep_direction[BRIDGE] = true;
-
-	/* NS_LINE */
-	part = parts[NS_LINE];
-	part.next_tile = AIMap.GetTileIndex(0, -1);
-	part.sections = array(2);
-	part.sections[0] = Section(
+	part.depot_positions = array(2);
+	part.depot_positions[0] = DepotPosition();
+	part.depot_positions[0].sections = array(2);
+	part.depot_positions[0].sections[0] = Section(
 		AIMap.GetTileIndex(0, -1), AIRail.RAILTRACK_NW_SE);
+	part.depot_positions[0].sections[1] = Section(
+		AIMap.GetTileIndex(0, -1), AIRail.RAILTRACK_NW_SW);
+	part.depot_positions[0].offset = AIMap.GetTileIndex(0, -2);
+
+	part.depot_positions[1] = DepotPosition();
+	part.depot_positions[1].sections = array(2);
+	part.depot_positions[1].sections[0] = Section(
+		AIMap.GetTileIndex(0, -1), AIRail.RAILTRACK_NE_SW);
+	part.depot_positions[1].sections[1] = Section(
+		AIMap.GetTileIndex(0, -1), AIRail.RAILTRACK_NE_SE);
+	part.depot_positions[1].offset = AIMap.GetTileIndex(-1, -1);
+
+	/* SW_BOOMERANG */
+	part = parts[SW_BOOMERANG];
+	part.sections = array(3);
+	part.sections[0] = Section(
+		AIMap.GetTileIndex(0, 0), AIRail.RAILTRACK_NE_SW);
 	part.sections[1] = Section(
+		AIMap.GetTileIndex(1, 0), AIRail.RAILTRACK_NW_NE);
+	part.sections[2] = Section(
+		AIMap.GetTileIndex(1, -1), AIRail.RAILTRACK_NW_SE);
+
+	part.depot_positions = array(2);
+	part.depot_positions[0] = DepotPosition();
+	part.depot_positions[0].sections = array(2);
+	part.depot_positions[0].sections[0] = Section(
+		AIMap.GetTileIndex(1, 0), AIRail.RAILTRACK_NW_SE);
+	part.depot_positions[0].sections[1] = Section(
+		AIMap.GetTileIndex(1, 0), AIRail.RAILTRACK_NE_SE);
+	part.depot_positions[0].offset = AIMap.GetTileIndex(1, 1);
+
+	part.depot_positions[1] = DepotPosition();
+	part.depot_positions[1].sections = array(2);
+	part.depot_positions[1].sections[0] = Section(
+		AIMap.GetTileIndex(1, 0), AIRail.RAILTRACK_NE_SW);
+	part.depot_positions[1].sections[1] = Section(
+		AIMap.GetTileIndex(1, 0), AIRail.RAILTRACK_NW_SW);
+	part.depot_positions[1].offset = AIMap.GetTileIndex(2, 0);
+
+	/* SE_BOOMERANG */
+	part = parts[SE_BOOMERANG];
+	part.sections = array(3);
+	part.sections[0] = Section(
+		AIMap.GetTileIndex(0, 0), AIRail.RAILTRACK_NE_SW);
+	part.sections[1] = Section(
+		AIMap.GetTileIndex(-1, 0), AIRail.RAILTRACK_NW_SW);
+	part.sections[2] = Section(
 		AIMap.GetTileIndex(-1, -1), AIRail.RAILTRACK_NW_SE);
 
-	part.continuation_parts = array(5);
-	part.continuation_parts[0] = NS_LINE;
-	part.continuation_parts[1] = NS_P_DIAGONAL;
-	part.continuation_parts[2] = NS_S_DIAGONAL;
-	part.continuation_parts[3] = NE_BEND;
-	part.continuation_parts[4] = NW_BEND;
-
-	part.previous_parts = array(5);
-	part.previous_parts[0] = NS_LINE;
-	part.previous_parts[1] = NS_P_DIAGONAL;
-	part.previous_parts[2] = NS_S_DIAGONAL;
-	part.previous_parts[3] = WS_BEND;
-	part.previous_parts[4] = ES_BEND;
-
-	part.points = array(6);
-	part.points[0] = AIMap.GetTileIndex(1, -1);
-	part.points[1] = AIMap.GetTileIndex(0, -1);
-	part.points[2] = AIMap.GetTileIndex(-1, -1);
-	part.points[3] = AIMap.GetTileIndex(1, 0);
-	part.points[4] = AIMap.GetTileIndex(0, 0);
-	part.points[5] = AIMap.GetTileIndex(-1, 0);
-
-	part.signal_senses = array(2);
-	part.signal_senses[0] = RailroadCommon.COUNTERCLOCKWISE;
-	part.signal_senses[1] = RailroadCommon.CLOCKWISE;
-
-	part.junctions = array(2);
-	part.junctions[0] = Junction(AIMap.GetTileIndex(-1, -1), J_ES_HOOK);
-	part.junctions[1] = Junction(AIMap.GetTileIndex(0, -1), J_WS_HOOK);
-
-	part.depots = array(2);
-	part.depots[0] = Depot(AIMap.GetTileIndex(0, -1), SEN_V);
-	part.depots[1] = Depot(AIMap.GetTileIndex(-1, -1), NWS_V);
-
-	part.parts_keep_direction = array(22);
-	for(local i = 0 ; i < 22 ; i++)
-		part.parts_keep_direction[i] = false;
-	part.parts_keep_direction[NS_LINE] = true;
-	part.parts_keep_direction[TUNNEL] = true;
-	part.parts_keep_direction[BRIDGE] = true;
-
-	/* Diagonals: */
-
-	/* EW_S_DIAGONAL */
-	part = parts[EW_S_DIAGONAL];
-	part.next_tile = AIMap.GetTileIndex(-1, 1);
-	part.sections = array(4);
-	part.sections[0] = Section(
-		AIMap.GetTileIndex(-1, 0), AIRail.RAILTRACK_SW_SE);
-	part.sections[1] = Section(
+	part.depot_positions = array(2);
+	part.depot_positions[0] = DepotPosition();
+	part.depot_positions[0].sections = array(2);
+	part.depot_positions[0].sections[0] = Section(
+		AIMap.GetTileIndex(-1, 0), AIRail.RAILTRACK_NE_SW);
+	part.depot_positions[0].sections[1] = Section(
 		AIMap.GetTileIndex(-1, 0), AIRail.RAILTRACK_NW_NE);
-	part.sections[2] = Section(
-		AIMap.GetTileIndex(-1, -1), AIRail.RAILTRACK_SW_SE);
-	part.sections[3] = Section(
-		AIMap.GetTileIndex(-1, 1), AIRail.RAILTRACK_NW_NE);
+	part.depot_positions[0].offset = AIMap.GetTileIndex(-2, 0);
 
-	part.continuation_parts = array(3);
-	part.continuation_parts[0] = EW_S_DIAGONAL;
-	part.continuation_parts[1] = EN_BEND;
-	part.continuation_parts[2] = EW_LINE;
-
-	part.previous_parts = array(3);
-	part.previous_parts[0] = EW_S_DIAGONAL;
-	part.previous_parts[1] = SW_BEND;
-	part.previous_parts[2] = EW_LINE;
-
-	part.points = array(6);
-	part.points[0] = AIMap.GetTileIndex(-1, 0);
-	part.points[1] = AIMap.GetTileIndex(-1, 1);
-	part.points[2] = AIMap.GetTileIndex(-1, 2);
-	part.points[3] = AIMap.GetTileIndex(0, -1);
-	part.points[4] = AIMap.GetTileIndex(0, 0);
-	part.points[5] = AIMap.GetTileIndex(0, 1);
-
-	part.signal_senses = array(4);
-	part.signal_senses[0] = RailroadCommon.COUNTERCLOCKWISE;
-	part.signal_senses[1] = RailroadCommon.INVALID_SENSE;
-	part.signal_senses[2] = RailroadCommon.CLOCKWISE;
-	part.signal_senses[3] = RailroadCommon.INVALID_SENSE;
-
-	part.junctions = array(2);
-	part.junctions[0] = Junction(AIMap.GetTileIndex(1, 1), J_EW_RECTANGLE);
-	part.junctions[1] = Junction(AIMap.GetTileIndex(0, -3), J_SN_RECTANGLE);
-
-	part.depots = array(2);
-	part.depots[0] = Depot(AIMap.GetTileIndex(-1, -1), EN_BOOMERANG);
-	part.depots[1] = Depot(AIMap.GetTileIndex(-1, 1), SW_BOOMERANG);
-
-	part.parts_keep_direction = array(22);
-	for(local i = 0 ; i < 22 ; i++)
-		part.parts_keep_direction[i] = false;
-	part.parts_keep_direction[EW_S_DIAGONAL] = true;
-	part.parts_keep_direction[EN_BEND] = true;
-
-	/* WE_S_DIAGONAL */
-	part = parts[WE_S_DIAGONAL];
-	part.next_tile = AIMap.GetTileIndex(1, -1);
-	part.sections = array(4);
-	part.sections[0] = Section(
-		AIMap.GetTileIndex(0, -1), AIRail.RAILTRACK_SW_SE);
-	part.sections[1] = Section(
-		AIMap.GetTileIndex(0, -1), AIRail.RAILTRACK_NW_NE);
-	part.sections[2] = Section(
-		AIMap.GetTileIndex(0, -2), AIRail.RAILTRACK_SW_SE);
-	part.sections[3] = Section(
-		AIMap.GetTileIndex(0, 0), AIRail.RAILTRACK_NW_NE);
-
-	part.continuation_parts = array(3);
-	part.continuation_parts[0] = WE_S_DIAGONAL;
-	part.continuation_parts[1] = WS_BEND;
-	part.continuation_parts[2] = WE_LINE;
-
-	part.previous_parts = array(3);
-	part.previous_parts[0] = WE_S_DIAGONAL;
-	part.previous_parts[1] = NE_BEND;
-	part.previous_parts[2] = WE_LINE;
-
-	part.points = array(6);
-	part.points[0] = AIMap.GetTileIndex(1, 0);
-	part.points[1] = AIMap.GetTileIndex(1, -1);
-	part.points[2] = AIMap.GetTileIndex(1, -2);
-	part.points[3] = AIMap.GetTileIndex(0, 1);
-	part.points[4] = AIMap.GetTileIndex(0, 0);
-	part.points[5] = AIMap.GetTileIndex(0, -1);
-
-	part.signal_senses = array(4);
-	part.signal_senses[0] = RailroadCommon.COUNTERCLOCKWISE;
-	part.signal_senses[1] = RailroadCommon.INVALID_SENSE;
-	part.signal_senses[2] = RailroadCommon.CLOCKWISE;
-	part.signal_senses[3] = RailroadCommon.INVALID_SENSE;
-
-	part.junctions = array(2);
-	part.junctions[0] = Junction(AIMap.GetTileIndex(0, -2), J_WE_RECTANGLE);
-	part.junctions[1] = Junction(AIMap.GetTileIndex(-1, 0), J_NS_RECTANGLE);
-
-	part.depots = array(2);
-	part.depots[0] = Depot(AIMap.GetTileIndex(-1, 1), SW_BOOMERANG);
-	part.depots[1] = Depot(AIMap.GetTileIndex(-1, -1), EN_BOOMERANG);
-
-	part.parts_keep_direction = array(22);
-	for(local i = 0 ; i < 22 ; i++)
-		part.parts_keep_direction[i] = false;
-	part.parts_keep_direction[WE_S_DIAGONAL] = true;
-	part.parts_keep_direction[WS_BEND] = true;
-
-	/* NS_S_DIAGONAL */
-	part = parts[NS_S_DIAGONAL];
-	part.next_tile = AIMap.GetTileIndex(1, -1);
-	part.sections = array(4);
-	part.sections[0] = Section(
-		AIMap.GetTileIndex(0, -1), AIRail.RAILTRACK_NW_NE);
-	part.sections[1] = Section(
-		AIMap.GetTileIndex(0, -1), AIRail.RAILTRACK_SW_SE);
-	part.sections[2] = Section(
-		AIMap.GetTileIndex(-1, -1), AIRail.RAILTRACK_SW_SE);
-	part.sections[3] = Section(
-		AIMap.GetTileIndex(1, -1), AIRail.RAILTRACK_NW_NE);
-
-	part.continuation_parts = array(3);
-	part.continuation_parts[0] = NS_S_DIAGONAL;
-	part.continuation_parts[1] = NE_BEND;
-	part.continuation_parts[2] = NS_LINE;
-
-	part.previous_parts = array(3);
-	part.previous_parts[0] = NS_S_DIAGONAL;
-	part.previous_parts[1] = WS_BEND;
-	part.previous_parts[2] = NS_LINE;
-
-	part.points = array(6);
-	part.points[0] = AIMap.GetTileIndex(2, -1);
-	part.points[1] = AIMap.GetTileIndex(1, -1);
-	part.points[2] = AIMap.GetTileIndex(0, -1);
-	part.points[3] = AIMap.GetTileIndex(1, 0);
-	part.points[4] = AIMap.GetTileIndex(0, 0);
-	part.points[5] = AIMap.GetTileIndex(-1, 0);
-
-	part.signal_senses = array(4);
-	part.signal_senses[0] = RailroadCommon.CLOCKWISE;
-	part.signal_senses[1] = RailroadCommon.INVALID_SENSE;
-	part.signal_senses[2] = RailroadCommon.INVALID_SENSE;
-	part.signal_senses[3] = RailroadCommon.COUNTERCLOCKWISE;
-
-	part.junctions = array(2);
-	part.junctions[0] = Junction(AIMap.GetTileIndex(0, -1), J_NS_RECTANGLE);
-	part.junctions[1] = Junction(AIMap.GetTileIndex(-1, -1), J_WE_RECTANGLE);
-
-	part.depots = array(2);
-	part.depots[0] = Depot(AIMap.GetTileIndex(0, 0), SW_BOOMERANG);
-	part.depots[1] = Depot(AIMap.GetTileIndex(-2, 0), EN_BOOMERANG);
-
-	part.parts_keep_direction = array(22);
-	for(local i = 0 ; i < 22 ; i++)
-		part.parts_keep_direction[i] = false;
-	part.parts_keep_direction[NS_S_DIAGONAL] = true;
-	part.parts_keep_direction[NE_BEND] = true;
-
-	/* SN_S_DIAGONAL */
-	part = parts[SN_S_DIAGONAL];
-	part.next_tile = AIMap.GetTileIndex(-1, 1);
-	part.sections = array(4);
-	part.sections[0] = Section(
-		AIMap.GetTileIndex(-1, 0), AIRail.RAILTRACK_NW_NE);
-	part.sections[1] = Section(
+	part.depot_positions[1] = DepotPosition();
+	part.depot_positions[1].sections = array(2);
+	part.depot_positions[1].sections[0] = Section(
+		AIMap.GetTileIndex(-1, 0), AIRail.RAILTRACK_NW_SE);
+	part.depot_positions[1].sections[1] = Section(
 		AIMap.GetTileIndex(-1, 0), AIRail.RAILTRACK_SW_SE);
-	part.sections[2] = Section(
-		AIMap.GetTileIndex(0, 0), AIRail.RAILTRACK_NW_NE);
-	part.sections[3] = Section(
-		AIMap.GetTileIndex(-2, 0), AIRail.RAILTRACK_SW_SE);
+	part.depot_positions[1].offset = AIMap.GetTileIndex(-1, 1);
 
-	part.continuation_parts = array(3);
-	part.continuation_parts[0] = SN_S_DIAGONAL;
-	part.continuation_parts[1] = SW_BEND;
-	part.continuation_parts[2] = SN_LINE;
-
-	part.previous_parts = array(3);
-	part.previous_parts[0] = SN_S_DIAGONAL;
-	part.previous_parts[1] = EN_BEND;
-	part.previous_parts[2] = SN_LINE;
-
-	part.points = array(6);
-	part.points[0] = AIMap.GetTileIndex(-2, 1);
-	part.points[1] = AIMap.GetTileIndex(-1, 1);
-	part.points[2] = AIMap.GetTileIndex(0, 1);
-	part.points[3] = AIMap.GetTileIndex(-1, 0);
-	part.points[4] = AIMap.GetTileIndex(0, 0);
-	part.points[5] = AIMap.GetTileIndex(1, 0);
-
-	part.signal_senses = array(4);
-	part.signal_senses[0] = RailroadCommon.INVALID_SENSE;
-	part.signal_senses[1] = RailroadCommon.COUNTERCLOCKWISE;
-	part.signal_senses[2] = RailroadCommon.INVALID_SENSE;
-	part.signal_senses[3] = RailroadCommon.CLOCKWISE;
-
-	part.junctions = array(2);
-	part.junctions[0] = Junction(AIMap.GetTileIndex(-1, -2), J_SN_RECTANGLE);
-	part.junctions[1] = Junction(AIMap.GetTileIndex(2, 0), J_EW_RECTANGLE);
-
-	part.depots = array(2);
-	part.depots[0] = Depot(AIMap.GetTileIndex(-2, 0), EN_BOOMERANG);
-	part.depots[1] = Depot(AIMap.GetTileIndex(0, 0), SW_BOOMERANG);
-
-	part.parts_keep_direction = array(22);
-	for(local i = 0 ; i < 22 ; i++)
-		part.parts_keep_direction[i] = false;
-	part.parts_keep_direction[SN_S_DIAGONAL] = true;
-	part.parts_keep_direction[SW_BEND] = true;
-
-	/* EW_P_DIAGONAL */
-	part = parts[EW_P_DIAGONAL];
-	part.next_tile = AIMap.GetTileIndex(-1, -1);
-	part.sections = array(4);
+	/* WN_BOOMERANG */
+	part = parts[WN_BOOMERANG];
+	part.sections = array(3);
 	part.sections[0] = Section(
-		AIMap.GetTileIndex(-1, -1), AIRail.RAILTRACK_NW_SW);
+		AIMap.GetTileIndex(0, 0), AIRail.RAILTRACK_NW_SE);
 	part.sections[1] = Section(
-		AIMap.GetTileIndex(-1, -1), AIRail.RAILTRACK_NE_SE);
-	part.sections[2] = Section(
-		AIMap.GetTileIndex(-1, 0), AIRail.RAILTRACK_NW_SW);
-	part.sections[3] = Section(
-		AIMap.GetTileIndex(-1, -2), AIRail.RAILTRACK_NE_SE);
-
-	part.continuation_parts = array(3);
-	part.continuation_parts[0] = EW_P_DIAGONAL;
-	part.continuation_parts[1] = ES_BEND;
-	part.continuation_parts[2] = EW_LINE;
-
-	part.previous_parts = array(3);
-	part.previous_parts[0] = EW_P_DIAGONAL;
-	part.previous_parts[1] = NW_BEND;
-	part.previous_parts[2] = EW_LINE;
-
-	part.points = array(6);
-	part.points[0] = AIMap.GetTileIndex(-1, -2);
-	part.points[1] = AIMap.GetTileIndex(-1, -1);
-	part.points[2] = AIMap.GetTileIndex(-1, 0);
-	part.points[3] = AIMap.GetTileIndex(0, -1);
-	part.points[4] = AIMap.GetTileIndex(0, 0);
-	part.points[5] = AIMap.GetTileIndex(0, 1);
-
-	part.signal_senses = array(4);
-	part.signal_senses[0] = RailroadCommon.COUNTERCLOCKWISE;
-	part.signal_senses[1] = RailroadCommon.INVALID_SENSE;
-	part.signal_senses[2] = RailroadCommon.CLOCKWISE;
-	part.signal_senses[3] = RailroadCommon.INVALID_SENSE;
-
-	part.junctions = array(2);
-	part.junctions[0] = Junction(AIMap.GetTileIndex(-1, 0), J_NS_RECTANGLE);
-	part.junctions[1] = Junction(AIMap.GetTileIndex(1, -1), J_EW_RECTANGLE);
-
-	part.depots = array(2);
-	part.depots[0] = Depot(AIMap.GetTileIndex(0, -1), WN_BOOMERANG);
-	part.depots[1] = Depot(AIMap.GetTileIndex(0, 1), SE_BOOMERANG);
-
-	part.parts_keep_direction = array(22);
-	for(local i = 0 ; i < 22 ; i++)
-		part.parts_keep_direction[i] = false;
-	part.parts_keep_direction[EW_P_DIAGONAL] = true;
-	part.parts_keep_direction[ES_BEND] = true;
-
-	/* WE_P_DIAGONAL */
-	part = parts[WE_P_DIAGONAL];
-	part.next_tile = AIMap.GetTileIndex(1, 1);
-	part.sections = array(4);
-	part.sections[0] = Section(
-		AIMap.GetTileIndex(0, 0), AIRail.RAILTRACK_NW_SW);
-	part.sections[1] = Section(
-		AIMap.GetTileIndex(0, 0), AIRail.RAILTRACK_NE_SE)
-	part.sections[2] = Section(
 		AIMap.GetTileIndex(0, -1), AIRail.RAILTRACK_NE_SE);
-	part.sections[3] = Section(
-		AIMap.GetTileIndex(0, 1), AIRail.RAILTRACK_NW_SW);
-
-	part.continuation_parts = array(3);
-	part.continuation_parts[0] = WE_P_DIAGONAL;
-	part.continuation_parts[1] = WN_BEND;
-	part.continuation_parts[2] = WE_LINE;
-
-	part.previous_parts = array(3);
-	part.previous_parts[0] = WE_P_DIAGONAL;
-	part.previous_parts[1] = SE_BEND;
-	part.previous_parts[2] = WE_LINE;
-
-	part.points = array(6);
-	part.points[0] = AIMap.GetTileIndex(1, 2);
-	part.points[1] = AIMap.GetTileIndex(1, 1);
-	part.points[2] = AIMap.GetTileIndex(1, 0);
-	part.points[3] = AIMap.GetTileIndex(0, 1);
-	part.points[4] = AIMap.GetTileIndex(0, 0);
-	part.points[5] = AIMap.GetTileIndex(0, -1);
-
-	part.signal_senses = array(4);
-	part.signal_senses[0] = RailroadCommon.INVALID_SENSE;
-	part.signal_senses[1] = RailroadCommon.COUNTERCLOCKWISE;
-	part.signal_senses[2] = RailroadCommon.CLOCKWISE;
-	part.signal_senses[3] = RailroadCommon.INVALID_SENSE;
-
-	part.junctions = array(2);
-	part.junctions[0] = Junction(AIMap.GetTileIndex(0, 0), J_WE_RECTANGLE);
-	part.junctions[1] = Junction(AIMap.GetTileIndex(0, -3), J_SN_RECTANGLE);
-
-	part.depots = array(2);
-	part.depots[0] = Depot(AIMap.GetTileIndex(0, 1), SE_BOOMERANG);
-	part.depots[1] = Depot(AIMap.GetTileIndex(0, -1), WN_BOOMERANG);
-
-	part.parts_keep_direction = array(22);
-	for(local i = 0 ; i < 22 ; i++)
-		part.parts_keep_direction[i] = false;
-	part.parts_keep_direction[WE_P_DIAGONAL] = true;
-	part.parts_keep_direction[WN_BEND] = true;
-
-	/* NS_P_DIAGONAL */
-	part = parts[NS_P_DIAGONAL];
-	part.next_tile = AIMap.GetTileIndex(-1, -1);
-	part.sections = array(4);
-	part.sections[0] = Section(
-		AIMap.GetTileIndex(-1, -1), AIRail.RAILTRACK_NE_SE);
-	part.sections[1] = Section(
-		AIMap.GetTileIndex(-1, -1), AIRail.RAILTRACK_NW_SW);
 	part.sections[2] = Section(
-		AIMap.GetTileIndex(-2, -1), AIRail.RAILTRACK_NW_SW);
-	part.sections[3] = Section(
-		AIMap.GetTileIndex(0, -1), AIRail.RAILTRACK_NE_SE);
+		AIMap.GetTileIndex(-1, -1), AIRail.RAILTRACK_NE_SW);
 
-	part.continuation_parts = array(3);
-	part.continuation_parts[0] = NS_P_DIAGONAL;
-	part.continuation_parts[1] = NW_BEND;
-	part.continuation_parts[2] = NS_LINE;
+	part.depot_positions = array(2);
+	part.depot_positions[0] = DepotPosition();
+	part.depot_positions[0].sections = array(2);
+	part.depot_positions[0].sections[0] = Section(
+		AIMap.GetTileIndex(0, -1), AIRail.RAILTRACK_NW_SE);
+	part.depot_positions[0].sections[1] = Section(
+		AIMap.GetTileIndex(0, -1), AIRail.RAILTRACK_NW_NE);
+	part.depot_positions[0].offset = AIMap.GetTileIndex(0, -2);
 
-	part.previous_parts = array(3);
-	part.previous_parts[0] = NS_P_DIAGONAL;
-	part.previous_parts[1] = ES_BEND;
-	part.previous_parts[2] = NS_LINE;
+	part.depot_positions[1] = DepotPosition();
+	part.depot_positions[1].sections = array(2);
+	part.depot_positions[1].sections[0] = Section(
+		AIMap.GetTileIndex(0, -1), AIRail.RAILTRACK_NE_SW);
+	part.depot_positions[1].sections[1] = Section(
+		AIMap.GetTileIndex(0, -1), AIRail.RAILTRACK_SW_SE);
+	part.depot_positions[1].offset = AIMap.GetTileIndex(1, -1);
+}
 
-	part.points = array(6);
-	part.points[0] = AIMap.GetTileIndex(0, -1);
-	part.points[1] = AIMap.GetTileIndex(-1, -1);
-	part.points[2] = AIMap.GetTileIndex(-2,-1);
-	part.points[3] = AIMap.GetTileIndex(1, 0);
-	part.points[4] = AIMap.GetTileIndex(0, 0);
-	part.points[5] = AIMap.GetTileIndex(-1, 0);
+function DoubleTrackParts::Initialize(){
+	local i, part;
+	parts = array(N_PARTS);
+	for(i = 0 ; i < N_PARTS ; i++){
+		if(IsJunction(i))
+			parts[i] = JunctionPart();
+		else if(IsDepot(i))
+			parts[i] = DepotPart();
+		else if(IsLineBendOrDiagonal(i))
+			parts[i] = ConventionalPart();
+	}
 
-	part.signal_senses = array(4);
-	part.signal_senses[0] = RailroadCommon.COUNTERCLOCKWISE;
-	part.signal_senses[1] = RailroadCommon.INVALID_SENSE;
-	part.signal_senses[2] = RailroadCommon.INVALID_SENSE;
-	part.signal_senses[3] = RailroadCommon.CLOCKWISE;
-
-	part.junctions = array(2);
-	part.junctions[0] = Junction(AIMap.GetTileIndex(-2, -1), J_NS_RECTANGLE);
-	part.junctions[1] = Junction(AIMap.GetTileIndex(2, 0), J_EW_RECTANGLE);
-
-	part.depots = array(2);
-	part.depots[0] = Depot(AIMap.GetTileIndex(1, 0), WN_BOOMERANG);
-	part.depots[1] = Depot(AIMap.GetTileIndex(-1, 0), SE_BOOMERANG);
-
-	part.parts_keep_direction = array(22);
-	for(local i = 0 ; i < 22 ; i++)
-		part.parts_keep_direction[i] = false;
-	part.parts_keep_direction[NS_P_DIAGONAL] = true;
-	part.parts_keep_direction[NW_BEND] = true;
-
-	/* SN_P_DIAGONAL */
-	part = parts[SN_P_DIAGONAL];
-	part.next_tile = AIMap.GetTileIndex(1, 1);
-	part.sections = array(4);
-	part.sections[0] = Section(
-		AIMap.GetTileIndex(0, 0), AIRail.RAILTRACK_NE_SE);
-	part.sections[1] = Section(
-		AIMap.GetTileIndex(0, 0), AIRail.RAILTRACK_NW_SW);
-	part.sections[2] = Section(
-		AIMap.GetTileIndex(-1, 0), AIRail.RAILTRACK_NW_SW);
-	part.sections[3] = Section(
-		AIMap.GetTileIndex(1, 0), AIRail.RAILTRACK_NE_SE);
-
-	part.continuation_parts = array(3);
-	part.continuation_parts[0] = SN_P_DIAGONAL;
-	part.continuation_parts[1] = SE_BEND;
-	part.continuation_parts[2] = SN_LINE;
-
-	part.previous_parts = array(3);
-	part.previous_parts[0] = SN_P_DIAGONAL;
-	part.previous_parts[1] = WN_BEND;
-	part.previous_parts[2] = SN_LINE;
-
-	part.points = array(6);
-	part.points[0] = AIMap.GetTileIndex(0, 1);
-	part.points[1] = AIMap.GetTileIndex(1, 1);
-	part.points[2] = AIMap.GetTileIndex(2, 1);
-	part.points[3] = AIMap.GetTileIndex(-1, 0);
-	part.points[4] = AIMap.GetTileIndex(0, 0);
-	part.points[5] = AIMap.GetTileIndex(1, 0);
-
-	part.signal_senses = array(4);
-	part.signal_senses[0] = RailroadCommon.COUNTERCLOCKWISE;
-	part.signal_senses[1] = RailroadCommon.INVALID_SENSE;
-	part.signal_senses[2] = RailroadCommon.INVALID_SENSE;
-	part.signal_senses[3] = RailroadCommon.CLOCKWISE;
-
-	part.junctions = array(2);
-	part.junctions[0] = Junction(AIMap.GetTileIndex(1, -2), J_SN_RECTANGLE);
-	part.junctions[1] = Junction(AIMap.GetTileIndex(-1, -1), J_WE_RECTANGLE);
-
-	part.depots = array(2);
-	part.depots[0] = Depot(AIMap.GetTileIndex(-1, 0), SE_BOOMERANG);
-	part.depots[1] = Depot(AIMap.GetTileIndex(1, 0), WN_BOOMERANG);
-
-	part.parts_keep_direction = array(22);
-	for(local i = 0 ; i < 22 ; i++)
-		part.parts_keep_direction[i] = false;
-	part.parts_keep_direction[SN_P_DIAGONAL] = true;
-	part.parts_keep_direction[SE_BEND] = true;
+	InitializeDepotParts(parts);
+	InitializeJunctions(parts);
+	InitializeBends(parts);
+	InitializeLines(parts);
+	InitializeDiagonals(parts);
 }
 
 function DoubleTrackParts::ConvertDoublePart(tile, part_index, rail_type){
@@ -2348,10 +2371,6 @@ function DoubleTrackParts::IsLine(part_index){
 	return (EW_LINE <= part_index && part_index <= SN_LINE);
 }
 
-function DoubleTrackParts::IsNotLine(part_index){
-	return IsBend(part_index) || IsDiagonal(part_index);
-}
-
 function DoubleTrackParts::IsBend(part_index){
 	return NE_BEND <= part_index && part_index <= WN_BEND;
 }
@@ -2360,6 +2379,9 @@ function DoubleTrackParts::IsDiagonal(part_index){
 	return NS_P_DIAGONAL <= part_index && part_index <= EW_S_DIAGONAL;
 }
 
+/**
+ * TODO: Needs a proper GetHeight.
+ **/
 function DoubleTrackParts::GetDoublePartTilesHeight(tile, part_index){
 	local heights = array(0);
 
@@ -2391,6 +2413,10 @@ function DoubleTrackParts::GetEntryPartHeight(tile, part_index){
 	return height;
 }
 
+/**
+ * TODO: This function is broken in sensing the tile heights and cases.
+ * The broken part is the height sensing system.
+ **/
 function DoubleTrackParts::LevelPart(tile, part_index, height){
 	local heights = GetDoublePartTilesHeight(tile, part_index);
 
@@ -2413,6 +2439,11 @@ function DoubleTrackParts::LevelPart(tile, part_index, height){
 
 function DoubleTrackParts::GetOppositePart(part_index){
 	switch(part_index){
+		case EW_LINE: return WE_LINE;
+		case WE_LINE: return EW_LINE;
+		case NS_LINE: return SN_LINE;
+		case SN_LINE: return NS_LINE;
+
 		case NE_BEND: return EN_BEND;
 		case EN_BEND: return NE_BEND;
 		case SW_BEND: return WS_BEND;
@@ -2421,10 +2452,7 @@ function DoubleTrackParts::GetOppositePart(part_index){
 		case SE_BEND: return ES_BEND;
 		case NW_BEND: return WN_BEND;
 		case WN_BEND: return NW_BEND;
-		case EW_LINE: return WE_LINE;
-		case WE_LINE: return EW_LINE;
-		case NS_LINE: return SN_LINE;
-		case SN_LINE: return NS_LINE;
+
 		case NS_P_DIAGONAL: return SN_P_DIAGONAL;
 		case SN_P_DIAGONAL: return NS_P_DIAGONAL;
 		case WE_P_DIAGONAL: return EW_P_DIAGONAL;
@@ -2433,19 +2461,17 @@ function DoubleTrackParts::GetOppositePart(part_index){
 		case SN_S_DIAGONAL: return NS_S_DIAGONAL;
 		case WE_S_DIAGONAL: return EW_S_DIAGONAL;
 		case EW_S_DIAGONAL: return WE_S_DIAGONAL;
-		default:
-			throw("Invalid part index.");
-		break;
 	}
+
+	throw("Invalid part index.");
 }
 
 function DoubleTrackParts::GetOppositePartTile(tile, part_index){
 	switch(part_index){
-
-		case EW_LINE: return tile + AIMap.GetTileIndex(-1, 0);
-		case WE_LINE: return tile + AIMap.GetTileIndex(1, 0);
-		case NS_LINE: return tile + AIMap.GetTileIndex(0, -1);
-		case SN_LINE: return tile + AIMap.GetTileIndex(0, 1);
+		case EW_LINE: return tile + AIMap.GetTileIndex(+1, -1);
+		case WE_LINE: return tile + AIMap.GetTileIndex(-1, +1);
+		case NS_LINE: return tile + AIMap.GetTileIndex(+1, +1);
+		case SN_LINE: return tile + AIMap.GetTileIndex(-1, -1);
 
 		case NE_BEND:
 		case EN_BEND:
@@ -2464,8 +2490,7 @@ function DoubleTrackParts::GetOppositePartTile(tile, part_index){
 		case WE_S_DIAGONAL:
 		case EW_S_DIAGONAL:
 			throw("Currently, this part index is not supported in this function.");
-		default:
-			throw("Invalid part index.");
-		break;
 	}
+
+	throw("Invalid part index.");
 }

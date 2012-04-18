@@ -8,6 +8,7 @@ require("money_manager.nut");
 require("scheduler.nut");
 require("vehicle_seller.nut");
 require("town_manager.nut");
+require("game_info.nut");
 require("railroad/a_star.nut");
 require("railroad/double_railroad_builder.nut");
 require("railroad/double_railroad_depot_builder.nut");

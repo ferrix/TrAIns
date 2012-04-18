@@ -24,10 +24,10 @@ class RailroadManager {
         ::ai_instance.scheduler.CreateTask(InvestMoneyOnRailroads, this, Scheduler.TRIWEEKLY_INTERVAL);
         ::ai_instance.scheduler.CreateTask(MaintainRailroadRoutes, this, Scheduler.BIWEEKLY_INTERVAL);
         
-        n_first_routes_are_industies = ::ai_instance.GetSetting("N first routes are industry");
+        n_first_routes_are_industries = ::ai_instance.GetSetting("N first routes are industry");
         town_to_industry_route_ratio = ai_instance.GetSetting("Chance to build town route");
         
-        LogMessagesManager.PrintLogMessage("# of first routes are industry: " +  n_first_routes_are_industies.tostring() );
+        LogMessagesManager.PrintLogMessage("# of first routes are industry: " +  n_first_routes_are_industries.tostring() );
         LogMessagesManager.PrintLogMessage("Industry-Town ratio:" + town_to_industry_route_ratio.tostring() );
         
         /*
@@ -46,10 +46,13 @@ class RailroadManager {
     static SOURCE_NUM_PLATFORMS = 2;
 
     static INDUSTRY_MIN_PRODUCTION = 88;
-    static TOWN_MIN_PRODUCTION = 120;
+    static TOWN_MIN_PRODUCTION = 80;
 
     static RAILROAD_ROUTE_LENGTH = 250;
     static RAILROAD_ROUTE_LENGTH_TOLERANCE = 80;
+
+    static TOWN_RAILROAD_ROUTE_LENGTH = 140;
+    static TOWN_RAILROAD_ROUTE_LENGTH_TOLERANCE = 90;
 
     static JUNCTION_GAP_SIZE = 20;
     static MAX_DISTANCE_JUNCTION_POINT = 150;
@@ -66,8 +69,10 @@ class RailroadManager {
 
     static MIN_POPULATION = 1500;
     
+    static MIN_AMOUNT_OF_MONEY_BEFORE_INVESTING_TO_TOWNS = 1000000;
+    
     /* This many first routes are industries. Is set in constructor */
-    n_first_routes_are_industies = 3;
+    n_first_routes_are_industries = 3;
     /* Controls ratio for a chance to build either town or industry route.
     0 is all industries
     100 is all towns
@@ -99,6 +104,7 @@ class RailroadManager {
     /* Route evaluators */
     function EvaluateIndustryRoutes(just_primary);
     function EvaluateTownRoutes();
+    function ManageTowns();
 }
 
 function RailroadManager::CanInvestMoneyOnTown(){
@@ -224,19 +230,21 @@ function RailroadManager::EvaluateIndustryRoutes(just_primary){
         List is ordered by valuator, so that best is on the top. 
     */
     /* */
+    return selected_industries;
     if( selected_industries.len() == 0 ){
         return false;
     }
     else
     {
+    	/*
         local tileIndex = AIIndustry.GetLocation(selected_industries[0].industry_id)
         local x = AIMap.GetTileX(tileIndex);
         local y = AIMap.GetTileY(tileIndex);
     	LogMessagesManager.PrintLogMessage("Best evaluated industry: " 
     	                                   + "Name: " + AIIndustry.GetName(selected_industries[0].industry_id)
     	                                   + " At: " + x.tostring() + "," + y.tostring()
-    	                                   + " Value: " + selected_industries[0].valuation.tostring());
-        return selected_industries[0].valuation;
+    	                                   + " Value: " + selected_industries[0].valuation.tostring());*/
+        return selected_industries;
    }
 }
 
@@ -245,7 +253,7 @@ function RailroadManager::EvaluateIndustryRoutes(just_primary){
 /* 
     When money is reserved for track try to build it 
 */
-function RailroadManager::InvestMoneyOnIndustry(just_primary, reservation_id){
+function RailroadManager::InvestMoneyOnIndustry(just_primary, reservation_id, selected_industries_list){
     local aux;
     local cargo_rail_type = AIList();
     /* Get places wantig a cargo */
@@ -258,8 +266,10 @@ function RailroadManager::InvestMoneyOnIndustry(just_primary, reservation_id){
     local total_available_money = ::ai_instance.money_manager.GetAmountReserved(reservation_id) +
         ::ai_instance.money_manager.GetAvailableMoney();
 
+    
     foreach(cargo, unused in cargos){
         /* Select a railtype. */
+        
         foreach(rail_type, unused in rail_types){
             /* First check if there is money to build the track. */
             if(total_available_money < EstimateCostToBuildRailroadRoute(rail_type, RAILROAD_ROUTE_LENGTH)) continue;
@@ -273,9 +283,9 @@ function RailroadManager::InvestMoneyOnIndustry(just_primary, reservation_id){
             cargo_rail_type.AddItem(cargo, rail_type);
 
             /* Try to find the industries. */
-            local s_industries = AIIndustryList_CargoProducing(cargo);
+            /*local s_industries = AIIndustryList_CargoProducing(cargo);
             local d_industries = AIIndustryList_CargoAccepting(cargo);
-            if(d_industries.Count() == 0) break; /* TODO: Destination may be a city. */
+            if(d_industries.Count() == 0) break; /* TODO: Destination may be a city. * /
 
             s_industries.Valuate(AIIndustry.IsValidIndustry);
             s_industries.KeepValue(1);
@@ -290,13 +300,17 @@ function RailroadManager::InvestMoneyOnIndustry(just_primary, reservation_id){
                         AIIndustry.GetLastMonthTransported(industry, cargo)) <
                         INDUSTRY_MIN_PRODUCTION)) continue;
                 selected_industries.push(IndustryUsage(industry, cargo));
-            }
+            }*/
             break;
         }
     }
 
-    IndustryValuator.ValuateIndustries(selected_industries);
-    foreach(industry in selected_industries){
+    /*IndustryValuator.ValuateIndustries(selected_industries);*/
+    /* Edited, moved code above to EvaluataIndustryRoutes, because we need list when initial 
+       making build decision 
+    */
+    
+    foreach(industry in selected_industries_list){
         /* First, try to connect the industry using an existent route. */
         local industry_tile = AIIndustry.GetLocation(industry.industry_id);
         if(railroad_routes.len() != 0){
@@ -381,9 +395,9 @@ function RailroadManager::EvaluateTownRoutes(){
     towns.Valuate(AITown.GetLocation);
 
     foreach(town, town_tile in towns){
-        if(((AITile.IsSnowTile(town_tile) || AITile.IsDesertTile(town_tile)) && AITown.GetPopulation(town) < 2.5 * MIN_POPULATION) ||
-            (AITown.GetLastMonthProduction(town, passenger_cargo) - AITown.GetLastMonthTransported(town, passenger_cargo)) <
-            TOWN_MIN_PRODUCTION) continue;
+        if( ( (AITile.IsSnowTile(town_tile) || AITile.IsDesertTile(town_tile)) && AITown.GetPopulation(town) < 2.5 * MIN_POPULATION ) ||
+            ( AITown.GetLastMonthProduction(town, passenger_cargo) - AITown.GetLastMonthTransported(town, passenger_cargo) ) <
+            TOWN_MIN_PRODUCTION ) continue;
         selected_towns.push(TownUsage(town));
     }
 
@@ -392,18 +406,25 @@ function RailroadManager::EvaluateTownRoutes(){
         return false;
     else
     {
-    	local tileIndex = AITown.GetLocation(selected_towns[0].town_id)
+    	
+    	/*local tileIndex = AITown.GetLocation(selected_towns[0].town_id)
         local x = AIMap.GetTileX(tileIndex);
         local y = AIMap.GetTileY(tileIndex);
         LogMessagesManager.PrintLogMessage("Best evaluated town: " 
                                            + "Name: " + AITown.GetName(selected_towns[0].town_id)
                                            + " At: " + x.tostring() + "," + y.tostring()
                                            + " Value: " + selected_towns[0].valuation.tostring());
-        return selected_towns[0].valuation;
+        */
+        LogMessagesManager.PrintLogMessage("Length of list: " + selected_towns.len().tostring() )
+        local townPairList = TownPairValuator.ValuateTownPairs(selected_towns
+                                    ,TOWN_RAILROAD_ROUTE_LENGTH - TOWN_RAILROAD_ROUTE_LENGTH_TOLERANCE
+                                    ,TOWN_RAILROAD_ROUTE_LENGTH + TOWN_RAILROAD_ROUTE_LENGTH_TOLERANCE);
+         LogMessagesManager.PrintLogMessage("Length of pair list: " + townPairList.len().tostring() )
+         return townPairList;
     }
 }
 
-function RailroadManager::InvestMoneyOnTown(reservation_id){
+function RailroadManager::InvestMoneyOnTown(reservation_id, townPairList){
     local selected_towns = array(0);
     /* Get rail types */
     local rail_types = GetValuatedRailTypes();
@@ -429,6 +450,7 @@ function RailroadManager::InvestMoneyOnTown(reservation_id){
     if(selected_rail_type == null) return false;
 
     /* Now select the towns. */
+    /*
     towns = AITownList();
     towns.Valuate(AITown.GetPopulation);
     towns.KeepAboveValue(MIN_POPULATION);
@@ -442,6 +464,20 @@ function RailroadManager::InvestMoneyOnTown(reservation_id){
     }
 
     TownValuator.ValuateTowns(selected_towns);
+    */
+    /* Edit, improved version, inc. evaluation */
+    foreach(townPair in townPairList){
+    	
+        if(!town_manager.IsBlocked(townPair.destinationTown) && !town_manager.IsUsed(townPair.destinationTown)){
+        	LogMessagesManager.PrintLogMessage("Building Src: " + AITown.GetName(townPair.sourceTown) 
+                                           + " Dest:"  +AITown.GetName(townPair.destinationTown)
+                                           + AIMap.DistanceManhattan(AITown.GetLocation(townPair.sourceTown),AITown.GetLocation(townPair.destinationTown))
+                                           );
+        	if(BuildNewTownRailroadRoute(townPair.sourceTown, townPair.destinationTown, selected_rail_type, reservation_id)) return true;
+        	
+        }
+    }
+    /*
     for(local i = 0 ; i < (selected_towns.len() - 1) ; i++){
         local town1_id = selected_towns[i].town_id;
         local town1_tile = AITown.GetLocation(town1_id);
@@ -455,7 +491,7 @@ function RailroadManager::InvestMoneyOnTown(reservation_id){
                 if(BuildNewTownRailroadRoute(town1_id, town2_id, selected_rail_type, reservation_id)) return true;
             }
         }
-    }
+    }*/
     return false;
 }
 
@@ -792,29 +828,101 @@ function RailroadManager::InvestMoneyOnRailroads(self){
     if(reservation_id != null){
     	
         LogMessagesManager.PrintLogMessage("Test industry evaluation!");
-        local res = EvaluateIndustryRoutes(true);
-        LogMessagesManager.PrintLogMessage("Value of best industry" +  res.tostring() );
-        LogMessagesManager.PrintLogMessage("Test town evaluation!");
-        local tres = EvaluateTownRoutes();
-        LogMessagesManager.PrintLogMessage("Value of best town" +  tres.tostring() );
-        /* This affects how often town route will be constructed vs. industry route */
+        LogMessagesManager.PrintLogMessage("Years elapsed: " + ::ai_instance.game_info.GetYearsElapsed().tostring());
+        local industry_list = EvaluateIndustryRoutes(true);
+        //LogMessagesManager.PrintLogMessage("Value of best industry" +  res.tostring() );
+        local counter = 0;
+        LogMessagesManager.PrintLogMessage("Industry values:" );
+        if( industry_list != null){
+	        foreach( industry in industry_list )
+	        {
+	        	if ( counter < 20)
+	        	  LogMessagesManager.PrintLogMessage("Source: " + AIIndustry.GetName(industry.industry_id)+ " - Value: " + industry.valuation.tostring());
+	           counter += 1;
+	        }
+        }
+        LogMessagesManager.PrintLogMessage("Testing town evaluation!");
+        local townPairList = EvaluateTownRoutes();
+        local townPair = {};
+        townPair.sourceTown <- 0;
+        townPair.destinationTown <- 0;
+        townPair.value <- 0;
+        local best_townPair = townPair;
+        if( townPairList != null && townPairList.len() > 0 ){
+	        foreach( t_pair in townPairList )
+	        {
+	        	LogMessagesManager.PrintLogMessage("Source: " + AITown.GetName(t_pair.sourceTown) + " - Dest: " + AITown.GetName(t_pair.destinationTown)+ " - Value: " + t_pair.value.tostring());
+	        }
+	        best_townPair = townPairList[0];
+        }
+     
+        
+        /* Choose best route 
+            Make choice industry vs town
+        */
+        
+        local best_industry_value = 0;
+        
+        if ( industry_list.len() > 0 ) 
+            best_industry_value = industry_list[0].valuation;
+            
+         
+        if( industry_list.len() > 0 || townPairList.len() > 0 ){
+	        if(railroad_routes.len() < n_first_routes_are_industries){
+	            /* Search and build a track */
+	            LogMessagesManager.PrintLogMessage("I have not yet built n industries, gotta do that!");
+	            aux = InvestMoneyOnIndustry(true, reservation_id, industry_list);
+	            
+	        }
+	       
+	        if(aux == false){
+	        	if( best_townPair.value > best_industry_value ){
+	        		LogMessagesManager.PrintLogMessage("Town selected, power to the people!");
+		            if(CanInvestMoneyOnTown() ){
+		                aux = InvestMoneyOnTown(reservation_id, townPairList);
+		            }
+		            else{
+		                LogMessagesManager.PrintLogMessage("Guh! Couldn't invest...");
+		                aux = InvestMoneyOnIndustry(true, reservation_id, industry_list);
+		            }
+	        	}
+	        	else{
+	        		LogMessagesManager.PrintLogMessage("Industry selected, there's stuff to be moved!");
+	        		aux = InvestMoneyOnIndustry(true, reservation_id, industry_list);
+	        	}
+	        }
+        }
+        /*  
+        
+        /* This affects how often town route will be constructed vs. industry route * /
         local r = AIBase.RandRange(99);
 
-        /* Use game setting to set ratio  */
+        /* Use game setting to set ratio  * /
         if(r >= town_to_industry_route_ratio || railroad_routes.len() < n_first_routes_are_industies){
-            /* Search and build a track */
+            /* Search and build a track * /
             aux = InvestMoneyOnIndustry(true, reservation_id);
         }
         if(aux == false){
-            if(CanInvestMoneyOnTown())
+            if(CanInvestMoneyOnTown() )
                 aux = InvestMoneyOnTown(reservation_id);
             else
                 aux = InvestMoneyOnIndustry(true, reservation_id);
         }
+         */
+        
+        
 
     }
     if(aux == false && reservation_id != null)
         ::ai_instance.money_manager.ReleaseReservation(reservation_id);
 
     return false;
+}
+
+/* Manages towns, buys exclusive rights, etc */
+function RailroadManager::ManageTowns(){
+    /* Get available money */
+    local availableMoney = 0;
+    availableMoney = ::ai_instance.money_manager.GetAvailableMoney();
+    
 }

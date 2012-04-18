@@ -141,7 +141,7 @@ class DestinationIndustryValuator {
     function ValuateIndustries(industries){
     	foreach(d_industry in industries){
     		/* Get distance from source industry */
-            distance = AITile.GetDistanceManhattanToTile(AIIndustry.GetLocation(source_industry_id), AIIndustry.GetLocation(railroad_route.d_industry));
+            distance = AITile.GetDistanceManhattanToTile(AIIndustry.GetLocation(source_industry_id), AIIndustry.GetLocation(d_industry.industry_id));
             
             if(distance < min_distance)
             {
@@ -166,6 +166,71 @@ class DestinationIndustryValuator {
     max_distance_to_industry  = null;
     min_distance_to_industry  = null;
 }
+
+/*  Valuates pairs of towns 
+    TODO Rename 
+*/
+class TownPairValuator {
+    /* public */
+    constructor(){
+        
+    }
+    
+    static function ValuateTownPairs(towns, min_distance, max_distance){
+        local townPairList = array(0);
+        foreach(s_town in towns){
+            /* Get distance from source industry */
+            foreach(d_town in towns)
+            {
+                local distance = AITile.GetDistanceManhattanToTile(AITown.GetLocation(s_town.town_id), AITown.GetLocation(d_town.town_id));
+            
+		        if(distance < min_distance)
+		            continue;
+	            else
+	            {
+	                if(distance > max_distance)
+	                    continue;    
+	                else 
+	                {
+	                	local townPair = {};
+	                	townPair.sourceTown <- s_town.town_id;
+	                	townPair.destinationTown <- d_town.town_id;
+	                	/* Is in range */
+	                    local v = (AITown.GetPopulation(s_town.town_id).tofloat() + AITown.GetPopulation(d_town.town_id).tofloat()) / 20;
+	                    
+	                    v *= 1.0 - (AITown.GetLastMonthTransportedPercentage(s_town.town_id, AICargo.CC_PASSENGERS).tofloat() / 100.0);
+	                    v *= 1.0 - (AITown.GetLastMonthTransportedPercentage(d_town.town_id, AICargo.CC_PASSENGERS).tofloat() / 100.0);
+	                    v *= AICargo.GetCargoIncome(AICargo.CC_PASSENGERS, 200, 50);
+	                    v *= 100000;
+	                    townPair.value <- v.tointeger();
+	                    
+	                    local containsDuplicate = false;
+	                    foreach( townP in townPairList ){
+	                       if ( townP.sourceTown == townPair.destinationTown
+	                            && townP.destinationTown == townPair.sourceTown
+	                            && townP.value == townPair.value)
+	                            containsDuplicate = true;
+	                    }
+	                    if ( !containsDuplicate )
+    	                    townPairList.append(townPair);   
+	                }
+	            }
+            }
+        }
+        townPairList.sort(TownPairValuator.custom_compare);
+        return townPairList; 
+    }
+    
+    /* Private */
+    static function custom_compare(a,b)
+	{
+		if( a.value < b.value ) return 1
+		else if( a.value > b.value ) return -1
+		return 0;
+	}
+  
+}
+
 
 class IndustryValuator {
 	/* Public: */

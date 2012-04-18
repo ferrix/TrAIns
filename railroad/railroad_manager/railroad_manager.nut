@@ -403,7 +403,7 @@ function RailroadManager::EvaluateTownRoutes(){
 
     TownValuator.ValuateTowns(selected_towns);
     if( selected_towns.len() == 0 )
-        return false;
+        return selected_towns;
     else
     {
     	

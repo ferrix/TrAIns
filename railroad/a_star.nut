@@ -152,7 +152,7 @@ class Path {
 		local path = this;
 		local tiles = AITileList();
 		
-		do {  
+		do {
 			if(!tiles.HasItem(tile)) {
 				// TODO: Find the tiles from the part then add everything to the tiles.
 				tiles.AddItem(tile);

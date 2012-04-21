@@ -312,7 +312,7 @@ function DoubleTrackParts::IsBoomerang(part_index){
 	return EN_BOOMERANG <= part_index && part_index <= WN_BOOMERANG;
 }
 
-function DoubleTrackParts::InitializeLines(parts) {
+function DoubleTrackParts::InitializeLines(parts){
 	local i, part;
 
 	/* WE_LINE */
@@ -2461,6 +2461,7 @@ function DoubleTrackParts::GetOppositePart(part_index){
 		case SN_S_DIAGONAL: return NS_S_DIAGONAL;
 		case WE_S_DIAGONAL: return EW_S_DIAGONAL;
 		case EW_S_DIAGONAL: return WE_S_DIAGONAL;
+		break;
 	}
 
 	throw("Invalid part index.");
@@ -2468,10 +2469,10 @@ function DoubleTrackParts::GetOppositePart(part_index){
 
 function DoubleTrackParts::GetOppositePartTile(tile, part_index){
 	switch(part_index){
-		case EW_LINE: return tile + AIMap.GetTileIndex(1, -1);
-		case WE_LINE: return tile + AIMap.GetTileIndex(-1, 1);
-		case NS_LINE: return tile + AIMap.GetTileIndex(1, 1);
-		case SN_LINE: return tile + AIMap.GetTileIndex(-1, -1);
+		case EW_LINE: return tile + AIMap.GetTileIndex(-1, 0);
+		case WE_LINE: return tile + AIMap.GetTileIndex(1, 0);
+		case NS_LINE: return tile + AIMap.GetTileIndex(0, -1);
+		case SN_LINE: return tile + AIMap.GetTileIndex(0, 1);
 
 		case NE_BEND:
 		case EN_BEND:
@@ -2490,6 +2491,7 @@ function DoubleTrackParts::GetOppositePartTile(tile, part_index){
 		case WE_S_DIAGONAL:
 		case EW_S_DIAGONAL:
 			throw("Currently, this part index is not supported in this function.");
+		break;
 	}
 
 	throw("Invalid part index.");

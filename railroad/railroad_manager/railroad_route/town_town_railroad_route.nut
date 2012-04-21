@@ -30,7 +30,8 @@ class TownToTownRailroadRoute extends RailroadRoute {
 	n_years_losing_money = 0;
 	double_railroad = 0;
 	train_manager = null;
-
+	town1_production_level = 0;
+	town2_production_level = 0;
 	function EstimateNumberOfTrains(self);
 	function GetLocomotiveEngine(self);
 	function GetNumberOfUnprofitableTrains();
@@ -87,9 +88,27 @@ function TownToTownRailroadRoute::EstimateNumberOfTrains(self){
 	local n_wagons = train_manager.n_wagons;
 	local tiles_per_day = (AIEngine.GetMaxSpeed(locomotive_engine) * 0.8 * 74.0) / 256.0 / 16.0;
 	local wagon_capacity = AIEngine.GetCapacity(train_manager.wagon_engine);
-	local town1_production = AITown.GetLastMonthProduction(town1, cargo) - AITown.GetLastMonthTransported(town1, cargo);
-	local town2_production = AITown.GetLastMonthProduction(town2, cargo) - AITown.GetLastMonthTransported(town2, cargo);
-
+	/* Use full production for calculating number of trains */
+	local town1_production = AITown.GetLastMonthProduction(town1, cargo)/* - AITown.GetLastMonthTransported(town1, cargo)*/;
+	local town2_production = AITown.GetLastMonthProduction(town2, cargo)/* - AITown.GetLastMonthTransported(town2, cargo)*/;
+	
+	local town1_rating = AIStation.GetCargoRating(AIStation.GetStationID(town1_double_railroad_station.station_tile), AICargo.CC_PASSENGERS);
+	local town2_rating = AIStation.GetCargoRating(AIStation.GetStationID(town2_double_railroad_station.station_tile), AICargo.CC_PASSENGERS);
+	LogMessagesManager.PrintLogMessage("town 1 rating " + town1_rating.tostring() );
+    LogMessagesManager.PrintLogMessage("town 2 rating " + town2_rating.tostring() );
+    
+    local station_tile = town1_double_railroad_station.station_tile;
+    LogMessagesManager.PrintLogMessage("Station X: " + AIMap.GetTileX(station_tile).tostring() +  " Y:" + AIMap.GetTileY(station_tile).tostring() );
+    station_tile = town2_double_railroad_station.station_tile;
+    LogMessagesManager.PrintLogMessage("Station X: " + AIMap.GetTileX(station_tile).tostring() +  " Y:" + AIMap.GetTileY(station_tile).tostring() );
+    
+    if ( town1_production_level == 0 )
+        town1_production_level = town1_double_railroad_station.GetCargoProduction(rail_type);
+    if ( town2_production_level == 0 )
+        town2_production_level = town2_double_railroad_station.GetCargoProduction(rail_type);
+    LogMessagesManager.PrintLogMessage("town 1 prod " + town1_production_level.tostring() );
+    LogMessagesManager.PrintLogMessage("town 2 prod " + town2_production_level.tostring() );
+	/* TODO Calculate trains for towns */
 	town1_production = town1_production <= 8 ? 8.0 : town1_production.tofloat();
 	town2_production = town2_production <= 8 ? 8.0 : town2_production.tofloat();
 	assert(n_wagons != null && n_wagons != 0 && tiles_per_day != 0);
@@ -102,7 +121,8 @@ function TownToTownRailroadRoute::EstimateNumberOfTrains(self){
 	load_time = load_time <= aux ? aux : load_time;
 
 	n_trains = ((transport_time + load_time)/load_time).tointeger();
-	if(n_trains <= 1) n_trains = 2;
+	
+	if(n_trains <= 1) n_trains = 4/*2*/;
 	else if(n_trains > 8) n_trains = 8;
 
 	return n_trains;

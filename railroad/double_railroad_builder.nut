@@ -339,7 +339,7 @@ function DoubleRailroadBuilder::G(parent_node, tile, part_index, user_data, self
 		  if (::ai_instance.game_info.GetYearsElapsed() < 20)
 			  c = (AIMap.DistanceManhattan(user_data.start_tile, user_data.exit_tile) + 1) * PART_COST;
 		  else
-		      c = (AIMap.DistanceManhattan(user_data.start_tile, user_data.exit_tile) + 1) * (PART_COST/2).tointeger();
+		      c = (AIMap.DistanceManhattan(user_data.start_tile, user_data.exit_tile) + 1) * (PART_COST).tointeger();
 		break;
 		case dtp.TUNNEL:
 		break;

@@ -159,6 +159,7 @@ function TrainManager::BuildTrain(){
 	return true;
 }
 
+/* Adjusts number trains in railroad route */
 function TrainManager::AdjustNumberOfTrains(){
 	if(n_trains == null){
 		/* First it buy one train to compute the number of wagons. */

@@ -48,12 +48,6 @@ class RailroadManager {
     static INDUSTRY_MIN_PRODUCTION = 88;
     static TOWN_MIN_PRODUCTION = 80;
 
-    static RAILROAD_ROUTE_LENGTH = 250;
-    static RAILROAD_ROUTE_LENGTH_TOLERANCE = 80;
-
-    static TOWN_RAILROAD_ROUTE_LENGTH = 140;
-    static TOWN_RAILROAD_ROUTE_LENGTH_TOLERANCE = 90;
-
     static JUNCTION_GAP_SIZE = 20;
     static MAX_DISTANCE_JUNCTION_POINT = 150;
 
@@ -70,6 +64,17 @@ class RailroadManager {
     static MIN_POPULATION = 1500;
     
     static MIN_AMOUNT_OF_MONEY_BEFORE_INVESTING_TO_TOWNS = 1000000;
+/*
+    static RAILROAD_ROUTE_LENGTH_TOLERANCE = 80;
+    static TOWN_RAILROAD_ROUTE_LENGTH_TOLERANCE = 90;
+
+    static RAILROAD_ROUTE_LENGTH = 250;
+    static TOWN_RAILROAD_ROUTE_LENGTH = 140;
+*/    
+    static TOWN_ROUTE_MIN_LENGTH = 170;
+    static TOWN_ROUTE_MAX_LENGTH = 330;
+    static INDUSTRY_ROUTE_MIN_LENGTH = 50;
+    static INDUSTRY_ROUTE_MAX_LENGTH = 230;
     
     /* This many first routes are industries. Is set in constructor */
     n_first_routes_are_industries = 3;
@@ -119,7 +124,7 @@ function RailroadManager::CanInvestMoneyOnTown(){
 
 function RailroadManager::EstimateCostToBuildRailroadRoute(rail_type, length){
     local rail_cost = AIRail.GetBuildCost(rail_type, AIRail.BT_TRACK);
-    return (rail_cost * 4 * RAILROAD_ROUTE_LENGTH * 1.10).tointeger();
+    return (rail_cost * 4 * length * 1.10).tointeger();
 }
 
 function RailroadManager::GetPassengerCargo(){
@@ -236,14 +241,14 @@ function RailroadManager::EvaluateIndustryRoutes(just_primary){
     }
     else
     {
-    	/*
+        /*
         local tileIndex = AIIndustry.GetLocation(selected_industries[0].industry_id)
         local x = AIMap.GetTileX(tileIndex);
         local y = AIMap.GetTileY(tileIndex);
-    	LogMessagesManager.PrintLogMessage("Best evaluated industry: " 
-    	                                   + "Name: " + AIIndustry.GetName(selected_industries[0].industry_id)
-    	                                   + " At: " + x.tostring() + "," + y.tostring()
-    	                                   + " Value: " + selected_industries[0].valuation.tostring());*/
+        LogMessagesManager.PrintLogMessage("Best evaluated industry: " 
+                                           + "Name: " + AIIndustry.GetName(selected_industries[0].industry_id)
+                                           + " At: " + x.tostring() + "," + y.tostring()
+                                           + " Value: " + selected_industries[0].valuation.tostring());*/
         return selected_industries;
    }
 }
@@ -272,7 +277,7 @@ function RailroadManager::InvestMoneyOnIndustry(just_primary, reservation_id, se
         
         foreach(rail_type, unused in rail_types){
             /* First check if there is money to build the track. */
-            if(total_available_money < EstimateCostToBuildRailroadRoute(rail_type, RAILROAD_ROUTE_LENGTH)) continue;
+            if(total_available_money < EstimateCostToBuildRailroadRoute(rail_type, ((INDUSTRY_ROUTE_MIN_LENGTH + INDUSTRY_ROUTE_MAX_LENGTH) / 2))) continue;
             /* Try to find a locomotive. */
             aux = RailroadRoute.ChooseLocomotive(cargo, rail_type, null);
             if(aux == null) continue;
@@ -333,8 +338,7 @@ function RailroadManager::InvestMoneyOnIndustry(just_primary, reservation_id, se
                 distance = AITile.GetDistanceManhattanToTile(industry_tile,
                     AIIndustry.GetLocation(railroad_route.d_industry));
                 /* Test if distance is between min and max distance */
-                if((distance - RAILROAD_ROUTE_LENGTH_TOLERANCE) <= RAILROAD_ROUTE_LENGTH &&
-                    RAILROAD_ROUTE_LENGTH <= (distance + RAILROAD_ROUTE_LENGTH_TOLERANCE)){
+                if(distance <= INDUSTRY_ROUTE_MAX_LENGTH && INDUSTRY_ROUTE_MIN_LENGTH <= distance){
                     foreach(industry_source in railroad_route.industry_sources){
                         paths.push(industry_source.double_railroad.path);
                     }
@@ -367,7 +371,7 @@ function RailroadManager::InvestMoneyOnIndustry(just_primary, reservation_id, se
 
 
 function RailroadManager::EvaluateTownRoutes(){
-	local selected_towns = array(0);
+    local selected_towns = array(0);
     /* Get rail types */
     local rail_types = GetValuatedRailTypes();
     local selected_rail_type = null;
@@ -406,8 +410,8 @@ function RailroadManager::EvaluateTownRoutes(){
         return false;
     else
     {
-    	
-    	/*local tileIndex = AITown.GetLocation(selected_towns[0].town_id)
+        
+        /*local tileIndex = AITown.GetLocation(selected_towns[0].town_id)
         local x = AIMap.GetTileX(tileIndex);
         local y = AIMap.GetTileY(tileIndex);
         LogMessagesManager.PrintLogMessage("Best evaluated town: " 
@@ -415,11 +419,10 @@ function RailroadManager::EvaluateTownRoutes(){
                                            + " At: " + x.tostring() + "," + y.tostring()
                                            + " Value: " + selected_towns[0].valuation.tostring());
         */
-        LogMessagesManager.PrintLogMessage("Length of list: " + selected_towns.len().tostring() )
+        LogMessagesManager.PrintLogMessage("Length of list: " + selected_towns.len().tostring() );
         local townPairList = TownPairValuator.ValuateTownPairs(selected_towns
-                                    ,TOWN_RAILROAD_ROUTE_LENGTH - TOWN_RAILROAD_ROUTE_LENGTH_TOLERANCE
-                                    ,TOWN_RAILROAD_ROUTE_LENGTH + TOWN_RAILROAD_ROUTE_LENGTH_TOLERANCE);
-         LogMessagesManager.PrintLogMessage("Length of pair list: " + townPairList.len().tostring() )
+                                    ,TOWN_ROUTE_MIN_LENGTH, TOWN_ROUTE_MAX_LENGTH);
+         LogMessagesManager.PrintLogMessage("Length of pair list: " + townPairList.len().tostring() );
          return townPairList;
     }
 }
@@ -437,7 +440,7 @@ function RailroadManager::InvestMoneyOnTown(reservation_id, townPairList){
     /* Select a railtype that has a compatible locomotive and wagon. */
     foreach(rail_type, unused in rail_types){
         /* First check if there is money to build the track. */
-        if(total_available_money < EstimateCostToBuildRailroadRoute(rail_type, RAILROAD_ROUTE_LENGTH)) continue;
+        if(total_available_money < EstimateCostToBuildRailroadRoute(rail_type, ((TOWN_ROUTE_MIN_LENGTH + TOWN_ROUTE_MAX_LENGTH) / 2))) continue;
         /* Try to find a locomotive. */
         local aux = RailroadRoute.ChooseLocomotive(passenger_cargo, rail_type, null);
         if(aux == null) continue;
@@ -467,14 +470,14 @@ function RailroadManager::InvestMoneyOnTown(reservation_id, townPairList){
     */
     /* Edit, improved version, inc. evaluation */
     foreach(townPair in townPairList){
-    	
+        
         if(!town_manager.IsBlocked(townPair.destinationTown) && !town_manager.IsUsed(townPair.destinationTown)){
-        	LogMessagesManager.PrintLogMessage("Building Src: " + AITown.GetName(townPair.sourceTown) 
+            LogMessagesManager.PrintLogMessage("Building Src: " + AITown.GetName(townPair.sourceTown) 
                                            + " Dest:"  +AITown.GetName(townPair.destinationTown)
                                            + AIMap.DistanceManhattan(AITown.GetLocation(townPair.sourceTown),AITown.GetLocation(townPair.destinationTown))
                                            );
-        	if(BuildNewTownRailroadRoute(townPair.sourceTown, townPair.destinationTown, selected_rail_type, reservation_id)) return true;
-        	
+            if(BuildNewTownRailroadRoute(townPair.sourceTown, townPair.destinationTown, selected_rail_type, reservation_id)) return true;
+            
         }
     }
     /*
@@ -586,8 +589,7 @@ function RailroadManager::BuildNewIndustryRailroadRoute(industry_id, cargo, rail
         if(industry_manager.IsBlocked(d_industry)) continue;
         local distance = AITile.GetDistanceManhattanToTile(AIIndustry.GetLocation(industry_id),
             AIIndustry.GetLocation(d_industry));
-        if((distance - RAILROAD_ROUTE_LENGTH_TOLERANCE) <= RAILROAD_ROUTE_LENGTH &&
-            RAILROAD_ROUTE_LENGTH <= (distance + RAILROAD_ROUTE_LENGTH_TOLERANCE)){
+        if(distance <= INDUSTRY_ROUTE_MAX_LENGTH && INDUSTRY_ROUTE_MIN_LENGTH <= distance){
             /* Set destination industry */
             railroad_route.d_industry = d_industry;
             /* Now try to construct the route. */
@@ -826,7 +828,7 @@ function RailroadManager::InvestMoneyOnRailroads(self){
 
     /* If we have sufficient money we must invest it. */
     if(reservation_id != null){
-    	
+        
         LogMessagesManager.PrintLogMessage("Test industry evaluation!");
         LogMessagesManager.PrintLogMessage("Years elapsed: " + ::ai_instance.game_info.GetYearsElapsed().tostring());
         local industry_list = EvaluateIndustryRoutes(true);
@@ -834,12 +836,12 @@ function RailroadManager::InvestMoneyOnRailroads(self){
         local counter = 0;
         LogMessagesManager.PrintLogMessage("Industry values:" );
         if( industry_list != null){
-	        foreach( industry in industry_list )
-	        {
-	        	if ( counter < 20)
-	        	  LogMessagesManager.PrintLogMessage("Source: " + AIIndustry.GetName(industry.industry_id)+ " - Value: " + industry.valuation.tostring());
-	           counter += 1;
-	        }
+            foreach( industry in industry_list )
+            {
+                if ( counter < 20)
+                  LogMessagesManager.PrintLogMessage("Source: " + AIIndustry.GetName(industry.industry_id)+ " - Value: " + industry.valuation.tostring());
+               counter += 1;
+            }
         }
         LogMessagesManager.PrintLogMessage("Testing town evaluation!");
         local townPairList = EvaluateTownRoutes();
@@ -849,11 +851,11 @@ function RailroadManager::InvestMoneyOnRailroads(self){
         townPair.value <- 0;
         local best_townPair = townPair;
         if( townPairList != null && townPairList.len() > 0 ){
-	        foreach( t_pair in townPairList )
-	        {
-	        	LogMessagesManager.PrintLogMessage("Source: " + AITown.GetName(t_pair.sourceTown) + " - Dest: " + AITown.GetName(t_pair.destinationTown)+ " - Value: " + t_pair.value.tostring());
-	        }
-	        best_townPair = townPairList[0];
+            foreach( t_pair in townPairList )
+            {
+                LogMessagesManager.PrintLogMessage("Source: " + AITown.GetName(t_pair.sourceTown) + " - Dest: " + AITown.GetName(t_pair.destinationTown)+ " - Value: " + t_pair.value.tostring());
+            }
+            best_townPair = townPairList[0];
         }
      
         
@@ -868,29 +870,29 @@ function RailroadManager::InvestMoneyOnRailroads(self){
             
          
         if( industry_list.len() > 0 || townPairList.len() > 0 ){
-	        if(railroad_routes.len() < n_first_routes_are_industries){
-	            /* Search and build a track */
-	            LogMessagesManager.PrintLogMessage("I have not yet built n industries, gotta do that!");
-	            aux = InvestMoneyOnIndustry(true, reservation_id, industry_list);
-	            
-	        }
-	       
-	        if(aux == false){
-	        	if( best_townPair.value > best_industry_value ){
-	        		LogMessagesManager.PrintLogMessage("Town selected, power to the people!");
-		            if(CanInvestMoneyOnTown() ){
-		                aux = InvestMoneyOnTown(reservation_id, townPairList);
-		            }
-		            else{
-		                LogMessagesManager.PrintLogMessage("Guh! Couldn't invest...");
-		                aux = InvestMoneyOnIndustry(true, reservation_id, industry_list);
-		            }
-	        	}
-	        	else{
-	        		LogMessagesManager.PrintLogMessage("Industry selected, there's stuff to be moved!");
-	        		aux = InvestMoneyOnIndustry(true, reservation_id, industry_list);
-	        	}
-	        }
+            if(railroad_routes.len() < n_first_routes_are_industries){
+                /* Search and build a track */
+                LogMessagesManager.PrintLogMessage("I have not yet built n industries, gotta do that!");
+                aux = InvestMoneyOnIndustry(true, reservation_id, industry_list);
+                
+            }
+           
+            if(aux == false){
+                if( best_townPair.value > best_industry_value ){
+                    LogMessagesManager.PrintLogMessage("Town selected, power to the people!");
+                    if(CanInvestMoneyOnTown() ){
+                        aux = InvestMoneyOnTown(reservation_id, townPairList);
+                    }
+                    else{
+                        LogMessagesManager.PrintLogMessage("Guh! Couldn't invest...");
+                        aux = InvestMoneyOnIndustry(true, reservation_id, industry_list);
+                    }
+                }
+                else{
+                    LogMessagesManager.PrintLogMessage("Industry selected, there's stuff to be moved!");
+                    aux = InvestMoneyOnIndustry(true, reservation_id, industry_list);
+                }
+            }
         }
         /*  
         

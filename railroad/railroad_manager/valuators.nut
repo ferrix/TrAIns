@@ -196,7 +196,7 @@ class TownPairValuator {
 	                	townPair.sourceTown <- s_town.town_id;
 	                	townPair.destinationTown <- d_town.town_id;
 	                	/* Is in range */
-	                    local v = (AITown.GetPopulation(s_town.town_id).tofloat() + AITown.GetPopulation(d_town.town_id).tofloat()) / 20;
+	                    local v = (AITown.GetPopulation(s_town.town_id).tofloat() + AITown.GetPopulation(d_town.town_id).tofloat()) / 15;
 	                    
 	                    v *= 1.0 - (AITown.GetLastMonthTransportedPercentage(s_town.town_id, AICargo.CC_PASSENGERS).tofloat() / 100.0);
 	                    v *= 1.0 - (AITown.GetLastMonthTransportedPercentage(d_town.town_id, AICargo.CC_PASSENGERS).tofloat() / 100.0);

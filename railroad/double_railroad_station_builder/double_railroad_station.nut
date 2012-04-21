@@ -42,7 +42,10 @@ class DoubleRailroadStation {
 	station_tile = null;
 	station_position = null;
 	station_type = null;
-
+	
+	/* Cargo production in build  */
+	built_time_cargo_production = 0;
+	
 	function BuildRailroadStation();
 	function ConvertRailroadStation(rail_type);
 	function DecideRailroadStationPosition();
@@ -73,6 +76,8 @@ function DoubleRailroadStation::GetCargoAcceptance(cargo){
 }
 
 function DoubleRailroadStation::GetCargoProduction(cargo){
+	/* Print for debug
+	LogMessagesManager.PrintLogMessage("Station X: " + AIMap.GetTileX(station_tile).tostring() +  " Y:" + AIMap.GetTileY(station_tile).tostring() );*/
 	return AITile.GetCargoProduction(station_tile, cargo, (land.swaped_w_h ? plataform_length : n_plataforms),
 			(land.swaped_w_h ? n_plataforms : plataform_length), AIStation.GetCoverageRadius(AIStation.STATION_TRAIN));
 }

@@ -70,12 +70,15 @@ function MoneyManager::ReserveMoney(min_amount_to_reserve = 0, max_amount_to_res
 
 function MoneyManager::ReleaseReservation(reservation_id){
 	local amount_reserved;
-	assert(reservation_id != null && reservations.HasItem(reservation_id));
-	amount_reserved = reservations.GetValue(reservation_id);
-	reservations.RemoveItem(reservation_id);
-	total_money_reserved -= amount_reserved;
-	if(reservations.Count() == 0) first_reservation_id = 0;
-	RepayLoan();
+	assert(reservation_id != null);
+	if ( reservations.HasItem(reservation_id) )
+	{
+		amount_reserved = reservations.GetValue(reservation_id);
+		reservations.RemoveItem(reservation_id);
+		total_money_reserved -= amount_reserved;
+		if(reservations.Count() == 0) first_reservation_id = 0;
+		RepayLoan();
+	}
 }
 
 function MoneyManager::RepayLoan(){

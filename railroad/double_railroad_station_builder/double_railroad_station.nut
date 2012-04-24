@@ -954,7 +954,7 @@ function DoubleRailroadStation::BuildRailroadStation(){
 	else station_direction = AIRail.RAILTRACK_NE_SW;
 
 	if(!AIRail.BuildRailStation(station_tile, station_direction, n_plataforms,
-		plataform_length, AIStation.STATION_NEW )) return false;
+		plataform_length, AIStation.STATION_JOIN_ADJACENT )) return false;
 
 	/* Build the station tracks. */
 	switch(station_type){

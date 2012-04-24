@@ -122,7 +122,7 @@ function TownToTownRailroadRoute::EstimateNumberOfTrains(self){
 
 	n_trains = ((transport_time + load_time)/load_time).tointeger();
 	
-	if(n_trains <= 1) n_trains = 4/*2*/;
+	if(n_trains <= 1) n_trains = 3/*2*/;
 	else if(n_trains > 8) n_trains = 8;
 
 	return n_trains;

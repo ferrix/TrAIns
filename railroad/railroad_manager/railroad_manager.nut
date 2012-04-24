@@ -24,13 +24,20 @@ class RailroadManager {
         ::ai_instance.scheduler.CreateTask(InvestMoneyOnRailroads, this, Scheduler.TRIWEEKLY_INTERVAL);
         ::ai_instance.scheduler.CreateTask(MaintainRailroadRoutes, this, Scheduler.BIWEEKLY_INTERVAL);
         
+        /* Get ai settings */
         n_first_routes_are_industries = ::ai_instance.GetSetting("N first routes are industry");
+        
+        max_number_of_routes_built_same_type = ::ai_instance.GetSetting("Max consecutive routes of same type");
+        TOWN_ROUTE_MIN_LENGTH = ::ai_instance.GetSetting("Town route min length");
+	    TOWN_ROUTE_MAX_LENGTH = ::ai_instance.GetSetting("Town route max length");
+	    INDUSTRY_ROUTE_MIN_LENGTH = ::ai_instance.GetSetting("Industry route min length");
+	    INDUSTRY_ROUTE_MAX_LENGTH = ::ai_instance.GetSetting("Industry route max length");
+        /* Deprecated */
         town_to_industry_route_ratio = ai_instance.GetSetting("Chance to build town route");
         
+        /*
         LogMessagesManager.PrintLogMessage("# of first routes are industry: " +  n_first_routes_are_industries.tostring() );
         LogMessagesManager.PrintLogMessage("Industry-Town ratio:" + town_to_industry_route_ratio.tostring() );
-        
-        /*
         n_first_routes_are_industies = ::ai_instance.game_settings.IndustriesBeforeTowns;
         town_to_industry_route_ratio = ::ai_instance.game_settings.IndustryTownRatio;
         */
@@ -71,10 +78,10 @@ class RailroadManager {
     static RAILROAD_ROUTE_LENGTH = 250;
     static TOWN_RAILROAD_ROUTE_LENGTH = 140;
 */    
-    static TOWN_ROUTE_MIN_LENGTH = 170;
-    static TOWN_ROUTE_MAX_LENGTH = 330;
-    static INDUSTRY_ROUTE_MIN_LENGTH = 50;
-    static INDUSTRY_ROUTE_MAX_LENGTH = 230;
+    TOWN_ROUTE_MIN_LENGTH = 120;
+    TOWN_ROUTE_MAX_LENGTH = 220;
+    INDUSTRY_ROUTE_MIN_LENGTH = 100;
+    INDUSTRY_ROUTE_MAX_LENGTH = 290;
     
     /* This many first routes are industries. Is set in constructor */
     n_first_routes_are_industries = 3;
@@ -88,6 +95,11 @@ class RailroadManager {
     passenger_cargo = null;
     railroad_routes = array(0);
     pending_actions = array(0);
+
+    max_number_of_routes_built_same_type = 2;
+    last_n_built_was_same_routes = 0;
+    last_n_built_route_type = 0;
+    
 
     static function GetOrdedCargos();
     static function GetValuatedRailTypes();
@@ -110,6 +122,12 @@ class RailroadManager {
     function EvaluateIndustryRoutes(just_primary);
     function EvaluateTownRoutes();
     function ManageTowns();
+}
+class RouteTypeEnum{
+	static UNKNOWN = 0;
+	static TOWN = 1;
+	static INDUSTRY = 2;
+	static ENUM_NAMES = ["Unknown", "Town", "Industry"];
 }
 
 function RailroadManager::CanInvestMoneyOnTown(){
@@ -277,7 +295,10 @@ function RailroadManager::InvestMoneyOnIndustry(just_primary, reservation_id, se
         
         foreach(rail_type, unused in rail_types){
             /* First check if there is money to build the track. */
-            if(total_available_money < EstimateCostToBuildRailroadRoute(rail_type, ((INDUSTRY_ROUTE_MIN_LENGTH + INDUSTRY_ROUTE_MAX_LENGTH) / 2))) continue;
+            
+            // Debug testing
+            //if(total_available_money < EstimateCostToBuildRailroadRoute(rail_type, ((INDUSTRY_ROUTE_MIN_LENGTH + INDUSTRY_ROUTE_MAX_LENGTH) / 2))) continue;
+            
             /* Try to find a locomotive. */
             aux = RailroadRoute.ChooseLocomotive(cargo, rail_type, null);
             if(aux == null) continue;
@@ -399,9 +420,10 @@ function RailroadManager::EvaluateTownRoutes(){
     towns.Valuate(AITown.GetLocation);
 
     foreach(town, town_tile in towns){
-        if( ( (AITile.IsSnowTile(town_tile) || AITile.IsDesertTile(town_tile)) && AITown.GetPopulation(town) < 2.5 * MIN_POPULATION ) ||
-            ( AITown.GetLastMonthProduction(town, passenger_cargo) - AITown.GetLastMonthTransported(town, passenger_cargo) ) <
-            TOWN_MIN_PRODUCTION ) continue;
+        if( ( (AITile.IsSnowTile(town_tile) || AITile.IsDesertTile(town_tile)) && AITown.GetPopulation(town) < 2.5 * MIN_POPULATION ) 
+            || ( AITown.GetLastMonthProduction(town, passenger_cargo) - AITown.GetLastMonthTransported(town, passenger_cargo) ) < TOWN_MIN_PRODUCTION 
+            || town_manager.IsBlocked(town)) 
+            continue;
         selected_towns.push(TownUsage(town));
     }
 
@@ -535,9 +557,11 @@ function RailroadManager::BuildNewTownRailroadRoute(town1, town2, rail_type, res
             railroad_route.town2_double_railroad_station = town2_drtsb.BuildRailroadStation();
             if(railroad_route.town2_double_railroad_station == null){
                 railroad_route.town1_double_railroad_station.DemolishRailroadStation();
+                LogMessagesManager.PrintLogMessage("Town 2:" + AITown.GetName(town2) + " station could not be built.");
                 town_manager.Block(town2);
             }
         }else{
+        	LogMessagesManager.PrintLogMessage("Town 1:" + AITown.GetName(town1) + " station could not be built.");
             town_manager.Block(town1);
             /* FIXME: need to check what was the problem. */
         }
@@ -851,8 +875,12 @@ function RailroadManager::InvestMoneyOnRailroads(self){
         townPair.value <- 0;
         local best_townPair = townPair;
         if( townPairList != null && townPairList.len() > 0 ){
+        	local counter = 10;
             foreach( t_pair in townPairList )
             {
+            	if ( counter <= 0 )
+            	   break;
+            	counter -= 1;
                 LogMessagesManager.PrintLogMessage("Source: " + AITown.GetName(t_pair.sourceTown) + " - Dest: " + AITown.GetName(t_pair.destinationTown)+ " - Value: " + t_pair.value.tostring());
             }
             best_townPair = townPairList[0];
@@ -867,32 +895,76 @@ function RailroadManager::InvestMoneyOnRailroads(self){
         
         if ( industry_list.len() > 0 ) 
             best_industry_value = industry_list[0].valuation;
-            
+       /* max_number_of_routes_built_same_type = 3;
+        last_n_built_was_same_routes = 0;
+        last_n_built_route_type = 0;*/
          
         if( industry_list.len() > 0 || townPairList.len() > 0 ){
             if(railroad_routes.len() < n_first_routes_are_industries){
                 /* Search and build a track */
                 LogMessagesManager.PrintLogMessage("I have not yet built n industries, gotta do that!");
+                if ( last_n_built_route_type == RouteTypeEnum.UNKNOWN ){
+                    last_n_built_route_type = RouteTypeEnum.INDUSTRY;
+                    last_n_built_was_same_routes = 1;
+                }else{
+                    if ( last_n_built_was_same_routes > 0 )
+                        last_n_built_was_same_routes += 1;
+                }
                 aux = InvestMoneyOnIndustry(true, reservation_id, industry_list);
-                
             }
-           
-            if(aux == false){
-                if( best_townPair.value > best_industry_value ){
-                    LogMessagesManager.PrintLogMessage("Town selected, power to the people!");
-                    if(CanInvestMoneyOnTown() ){
-                        aux = InvestMoneyOnTown(reservation_id, townPairList);
-                    }
-                    else{
-                        LogMessagesManager.PrintLogMessage("Guh! Couldn't invest...");
-                        aux = InvestMoneyOnIndustry(true, reservation_id, industry_list);
-                    }
-                }
-                else{
-                    LogMessagesManager.PrintLogMessage("Industry selected, there's stuff to be moved!");
-                    aux = InvestMoneyOnIndustry(true, reservation_id, industry_list);
-                }
+            LogMessagesManager.PrintLogMessage("Last built " + last_n_built_was_same_routes.tostring() + " " + RouteTypeEnum.ENUM_NAMES[last_n_built_route_type]);
+            /* Override build estimation if enough of routes are same type */
+            if( last_n_built_was_same_routes >= max_number_of_routes_built_same_type ){
+            	if ( last_n_built_route_type == RouteTypeEnum.INDUSTRY ){
+            		LogMessagesManager.PrintLogMessage("Too many industry routes built, now building town route.");
+            		last_n_built_route_type = RouteTypeEnum.TOWN;
+                    last_n_built_was_same_routes = 1;
+                	aux = InvestMoneyOnTown(reservation_id, townPairList);
+            	}else{
+            		LogMessagesManager.PrintLogMessage("Too many town routes built, now building industry route.");
+            		last_n_built_route_type = RouteTypeEnum.INDUSTRY;
+                    last_n_built_was_same_routes = 1;
+            	   	aux = InvestMoneyOnIndustry(true, reservation_id, industry_list);
+            	}
+            	
             }
+            else
+            {
+	            if(aux == false){
+	                if( best_townPair.value > best_industry_value ){
+	                    LogMessagesManager.PrintLogMessage("Town selected, power to the people!");
+	                    if(CanInvestMoneyOnTown() ){
+	                    	if ( last_n_built_route_type == RouteTypeEnum.TOWN ){
+	                    		last_n_built_was_same_routes += 1;
+	                    	}else{
+	                        	last_n_built_route_type = RouteTypeEnum.TOWN;
+	                        	last_n_built_was_same_routes = 1;
+	                    	}
+	                        aux = InvestMoneyOnTown(reservation_id, townPairList);
+	                    }
+	                    else{
+	                        LogMessagesManager.PrintLogMessage("Guh! Couldn't invest...");
+	                        if ( last_n_built_route_type == RouteTypeEnum.INDUSTRY ){
+	                            last_n_built_was_same_routes += 1;
+	                        }else{
+	                            last_n_built_route_type = RouteTypeEnum.INDUSTRY;
+	                            last_n_built_was_same_routes = 1;
+	                        }
+	                        aux = InvestMoneyOnIndustry(true, reservation_id, industry_list);
+	                    }
+	                }
+	                else{
+	                    LogMessagesManager.PrintLogMessage("Industry selected, there's stuff to be moved!");
+	                    if ( last_n_built_route_type == RouteTypeEnum.INDUSTRY ){
+	                        last_n_built_was_same_routes += 1;
+	                    }else{
+	                        last_n_built_route_type == RouteTypeEnum.INDUSTRY;
+	                        last_n_built_was_same_routes = 1;
+	                    }
+	                    aux = InvestMoneyOnIndustry(true, reservation_id, industry_list);
+	                }
+	            }
+	        }
         }
         /*  
         

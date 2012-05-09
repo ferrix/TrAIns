@@ -146,12 +146,12 @@ class DestinationIndustryValuator {
             if(distance < min_distance)
             {
             	
-            	industry.valuation = 1000*distance;
+            	industry.valuation = 10*distance;
             }
             else
                 if(distance > max_distance)
                 {
-                    industry.valuation = 10000*distance;	
+                    industry.valuation = 100*distance;	
                 }
                 else 
                 {
@@ -201,7 +201,7 @@ class TownPairValuator {
 	                    v *= 1.0 - (AITown.GetLastMonthTransportedPercentage(s_town.town_id, AICargo.CC_PASSENGERS).tofloat() / 100.0);
 	                    v *= 1.0 - (AITown.GetLastMonthTransportedPercentage(d_town.town_id, AICargo.CC_PASSENGERS).tofloat() / 100.0);
 	                    v *= AICargo.GetCargoIncome(AICargo.CC_PASSENGERS, 200, 50);
-	                    v *= 100000;
+	                    v *= 10;
 	                    townPair.value <- v.tointeger();
 	                    
 	                    local containsDuplicate = false;
@@ -245,7 +245,7 @@ class IndustryValuator {
 			stations_around = AIIndustry.GetAmountOfStationsAround(industry.industry_id);
 			v /= (stations_around.tofloat() + 1.0);
 			v *= cargos.GetValue(industry.cargo).tofloat();
-			industry.valuation = (v * 100000).tointeger();
+			industry.valuation = (v * 10).tointeger();
 		}
 		industries.sort();
 	}
@@ -259,7 +259,7 @@ class TownValuator {
 
 			v = AITown.GetLastMonthProduction(town_usage.town_id, cargo).tofloat();
 			v *= 1.0 - (AITown.GetLastMonthTransportedPercentage(town_usage.town_id, cargo).tofloat() / 100.0);
-			town_usage.valuation = (v * 100000).tointeger();
+			town_usage.valuation = (v * 10).tointeger();
 		}
 		towns.sort();
 	}

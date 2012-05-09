@@ -441,10 +441,10 @@ function RailroadManager::EvaluateTownRoutes(){
                                            + " At: " + x.tostring() + "," + y.tostring()
                                            + " Value: " + selected_towns[0].valuation.tostring());
         */
-        LogMessagesManager.PrintLogMessage("Length of list: " + selected_towns.len().tostring() );
+        /*LogMessagesManager.PrintLogMessage("Length of list: " + selected_towns.len().tostring() );*/
         local townPairList = TownPairValuator.ValuateTownPairs(selected_towns
                                     ,TOWN_ROUTE_MIN_LENGTH, TOWN_ROUTE_MAX_LENGTH);
-         LogMessagesManager.PrintLogMessage("Length of pair list: " + townPairList.len().tostring() );
+         /*LogMessagesManager.PrintLogMessage("Length of pair list: " + townPairList.len().tostring() );*/
          return townPairList;
     }
 }
@@ -853,21 +853,22 @@ function RailroadManager::InvestMoneyOnRailroads(self){
     /* If we have sufficient money we must invest it. */
     if(reservation_id != null){
         
-        LogMessagesManager.PrintLogMessage("Test industry evaluation!");
-        LogMessagesManager.PrintLogMessage("Years elapsed: " + ::ai_instance.game_info.GetYearsElapsed().tostring());
+        /*LogMessagesManager.PrintLogMessage("Test industry evaluation!");
+        LogMessagesManager.PrintLogMessage("Years elapsed: " + ::ai_instance.game_info.GetYearsElapsed().tostring());*/
         local industry_list = EvaluateIndustryRoutes(true);
         //LogMessagesManager.PrintLogMessage("Value of best industry" +  res.tostring() );
         local counter = 0;
-        LogMessagesManager.PrintLogMessage("Industry values:" );
-        if( industry_list != null){
+        /*LogMessagesManager.PrintLogMessage("Industry values:" );*/
+        /*if( industry_list != null){
             foreach( industry in industry_list )
             {
                 if ( counter < 20)
                   LogMessagesManager.PrintLogMessage("Source: " + AIIndustry.GetName(industry.industry_id)+ " - Value: " + industry.valuation.tostring());
+               
                counter += 1;
             }
-        }
-        LogMessagesManager.PrintLogMessage("Testing town evaluation!");
+        } */
+        /*LogMessagesManager.PrintLogMessage("Testing town evaluation!");*/
         local townPairList = EvaluateTownRoutes();
         local townPair = {};
         townPair.sourceTown <- 0;
@@ -881,7 +882,7 @@ function RailroadManager::InvestMoneyOnRailroads(self){
             	if ( counter <= 0 )
             	   break;
             	counter -= 1;
-                LogMessagesManager.PrintLogMessage("Source: " + AITown.GetName(t_pair.sourceTown) + " - Dest: " + AITown.GetName(t_pair.destinationTown)+ " - Value: " + t_pair.value.tostring());
+                /*LogMessagesManager.PrintLogMessage("Source: " + AITown.GetName(t_pair.sourceTown) + " - Dest: " + AITown.GetName(t_pair.destinationTown)+ " - Value: " + t_pair.value.tostring());*/
             }
             best_townPair = townPairList[0];
         }

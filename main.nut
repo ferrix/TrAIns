@@ -82,7 +82,7 @@ function trAIns::Start(){
 	{
 		local i = 0, company_name = "trAIns AI";
 		while(!AICompany.SetName(company_name)){
-			company_name = "trAIns AI #" + ++i;
+			company_name = "trAIns++ AI #" + ++i;
 		}
 	}
 
